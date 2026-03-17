@@ -1,2 +1,2 @@
-# group-project-metrojuice-paak
-group-project-metrojuice-paak created by GitHub Classroom
+# group-project-metrojuicepaak
+group-project-metrojuicepaak created by GitHub Classroom
