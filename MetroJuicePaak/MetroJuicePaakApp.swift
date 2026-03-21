@@ -11,7 +11,7 @@ import SwiftUI
 struct MetroJuicePaakApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SamplerView()
         }
     }
 }
