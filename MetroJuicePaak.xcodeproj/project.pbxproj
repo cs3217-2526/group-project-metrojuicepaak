@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		57B260262F6927DC00D45B43 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 57B260252F6927DC00D45B43 /* README.md */; };
 		57B260282F6928AA00D45B43 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 57B260272F6928A100D45B43 /* .gitignore */; };
+		57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 57B260352F6E840E00D45B43 /* swiftlint.yml */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,7 @@
 		57B25FF42F69263B00D45B43 /* MetroJuicePaakUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MetroJuicePaakUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		57B260252F6927DC00D45B43 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		57B260272F6928A100D45B43 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		57B260352F6E840E00D45B43 /* swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = swiftlint.yml; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -82,6 +84,7 @@
 		57B25FD42F69263A00D45B43 = {
 			isa = PBXGroup;
 			children = (
+				57B260352F6E840E00D45B43 /* swiftlint.yml */,
 				57B260252F6927DC00D45B43 /* README.md */,
 				57B260272F6928A100D45B43 /* .gitignore */,
 				57B25FDF2F69263A00D45B43 /* MetroJuicePaak */,
@@ -111,6 +114,7 @@
 				57B25FD92F69263A00D45B43 /* Sources */,
 				57B25FDA2F69263A00D45B43 /* Frameworks */,
 				57B25FDB2F69263A00D45B43 /* Resources */,
+				57B260392F6E848900D45B43 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -230,6 +234,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,6 +246,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		57B260392F6E848900D45B43 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nif which swiftlint > /dev/null; then swiftlint; fi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		57B25FD92F69263A00D45B43 /* Sources */ = {
