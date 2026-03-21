@@ -1,0 +1,98 @@
+# ╔══════════════════════════════════════════════╗
+# ║   .swiftlint.yml — Groove Box App 🎹        ║
+# ║   Beginner-friendly Swift style config       ║
+# ╚══════════════════════════════════════════════╝
+#
+# Drop this file in the ROOT of your Xcode project folder.
+# Run SwiftLint from Terminal: swiftlint
+# Or install the Xcode build phase plugin so it runs automatically!
+
+# ──────────────────────────────────────────────
+# 1. WHICH FILES TO CHECK
+# ──────────────────────────────────────────────
+
+included:
+  - MetroJuicePaak      # Your main app source folder (rename if different)
+
+excluded:
+  - Pods               # CocoaPods dependencies — not your code, skip it
+  - .build             # Swift Package Manager build artifacts
+  - DerivedData        # Xcode generated files
+
+
+# ──────────────────────────────────────────────
+# 2. RULES TO TURN OFF (too strict for beginners)
+# ──────────────────────────────────────────────
+
+disabled_rules:
+  - trailing_whitespace        # Extra spaces at line ends — minor, don't worry about it yet
+  - todo                       # Allows you to leave TODO: / FIXME: notes freely
+  - file_length                # A long file is fine while you're learning
+  - type_body_length           # Big classes are okay for now
+  - function_body_length       # Long functions are fine while learning
+  - cyclomatic_complexity      # Advanced rule — skip for now
+  - force_try                  # Beginners often need try! while learning error handling
+  - force_cast                 # Same — as! casts are okay while you're learning
+  - line_length                # Long lines won't block you (but try to keep them readable!)
+
+
+# ──────────────────────────────────────────────
+# 3. OPTIONAL RULES TO TURN ON (helpful extras)
+# ──────────────────────────────────────────────
+
+opt_in_rules:
+  - empty_count              # Use .isEmpty instead of .count == 0
+  - sorted_imports           # Keep your import statements alphabetically sorted
+  - closure_spacing          # Consistent spacing inside closures { like this }
+  - contains_over_first_not_nil  # Use .contains() instead of .first() != nil
+  - explicit_init            # Write MyClass() instead of MyClass.init()
+  - multiline_parameters     # Wrap long function parameters nicely across lines
+
+
+# ──────────────────────────────────────────────
+# 4. RULE CUSTOMISATION (relaxed for beginners)
+# ──────────────────────────────────────────────
+
+# Variable & function names — short names like 'bpm' and 'fx' are fine!
+identifier_name:
+  min_length:
+    warning: 2    # Names must be at least 2 characters (e.g. 'id' is fine)
+    error: 1      # Only error on single-character names (except loop counters)
+  excluded:
+    - i           # Loop counter
+    - j           # Loop counter
+    - x           # Common coordinate
+    - y           # Common coordinate
+    - id          # Common identifier
+    - bpm         # Beats per minute — groove box specific!
+    - fx          # Effects — groove box specific!
+    - db          # Decibels
+
+# Type names (classes, structs, enums) — must start with a capital letter
+type_name:
+  min_length:
+    warning: 3
+    error: 2
+
+# Nesting — how deep you can nest code blocks (relaxed a little)
+nesting:
+  type_level:
+    warning: 2
+  function_level:
+    warning: 3
+
+# Number of lines in a function before a warning (relaxed for beginners)
+# (rule is disabled above, but here as reference if you re-enable it)
+function_body_length:
+  warning: 80
+  error: 150
+
+
+# ──────────────────────────────────────────────
+# 5. REPORTER
+# ──────────────────────────────────────────────
+
+# "xcode" shows warnings/errors inline in Xcode. 
+# Use "emoji" for fun terminal output  🎉
+reporter: "xcode"
+
