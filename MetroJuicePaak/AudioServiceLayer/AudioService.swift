@@ -19,7 +19,7 @@ class AudioService {
     
     private var audioSession: AVAudioSession
     internal let audioApplication = AVAudioApplication.shared
-    internal let audioEngine = AudioEngine()
+    internal let audioEngine = AVAudioEngine()
     internal var activeRecorder: AVAudioRecorder?
     
     init() async throws {
