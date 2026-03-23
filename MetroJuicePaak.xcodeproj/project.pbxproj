@@ -10,7 +10,6 @@
 		57B260262F6927DC00D45B43 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 57B260252F6927DC00D45B43 /* README.md */; };
 		57B260282F6928AA00D45B43 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 57B260272F6928A100D45B43 /* .gitignore */; };
 		57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 57B260352F6E840E00D45B43 /* swiftlint.yml */; };
-		57E8DE9E2F7043B100DAEF28 /* claude.md in Resources */ = {isa = PBXBuildFile; fileRef = 57E8DE9D2F7043B100DAEF28 /* claude.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -242,7 +241,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				57B260262F6927DC00D45B43 /* README.md in Resources */,
-				57E8DE9E2F7043B100DAEF28 /* claude.md in Resources */,
 				57B260282F6928AA00D45B43 /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
