@@ -27,11 +27,20 @@ struct SamplerPadButton: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(UIElements.color.swiftUIColor)
                 .shadow(color: .black.opacity(0.3), radius: isBeingPressed ? 2 : 4, y: isBeingPressed ? 2 : 4)
-            if let image = UIElements.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .padding(8)
+            if isSampleLoaded {
+                if let loadedImage = UIImage(named: "sample-loaded") {
+                    Image(uiImage: loadedImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(8)
+                }
+            } else {
+                if let image = UIElements.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(8)
+                }
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -43,14 +52,18 @@ struct SamplerPadButton: View {
                         withAnimation(.easeInOut(duration: 0.1)) {
                             self.isBeingPressed = true
                         }
-                        viewModel.handlePadPressed(id)
+                        Task {
+                            await viewModel.handlePadPressed(id)
+                        }
                     }
                 }
                 .onEnded { _ in
                     withAnimation(.easeInOut(duration: 0.1)) {
                         self.isBeingPressed = false
                     }
-                    viewModel.handlePadReleased(id)
+                    Task {
+                        await viewModel.handlePadReleased(id)
+                    }
                 }
         )
     }

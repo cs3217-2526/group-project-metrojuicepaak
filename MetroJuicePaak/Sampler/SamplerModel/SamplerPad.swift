@@ -20,12 +20,16 @@ class SamplerPad: Identifiable, Codable {
         sample != nil
     }
     
+    var sampleID: String? {
+        sample?.id
+    }
+    
     init(id: UUID = UUID(), sample: AudioSample? = nil) {
         self.id = id
         self.sample = sample
     }
     
-    func loadAudioSample(from url: URL) {
-        let sample = AudioSample(url: url, duration: 1)
+    func loadAudioSample(from url: URL, id: String) {
+        let sample = AudioSample(id: id, url: url, duration: 1)
         self.sample = sample    }
 }
