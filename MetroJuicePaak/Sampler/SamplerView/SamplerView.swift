@@ -28,6 +28,10 @@ struct SamplerView: View {
                     Text("Recording...")
                         .foregroundStyle(.red)
                         .font(.caption)
+                } else if viewModel.isPlaying {
+                    Text("Playing...")
+                        .foregroundStyle(.red)
+                        .font(.caption)
                 }
                 
                 HStack {
