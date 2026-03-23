@@ -9,12 +9,14 @@ import Foundation
 
 struct AudioSample: Codable {
     let url: URL
+    let id: String
     let duration: TimeInterval
     
     var startTime: TimeInterval
     var endTime: TimeInterval
     
-    init(url: URL, duration: TimeInterval) {
+    init(id: String, url: URL, duration: TimeInterval) {
+        self.id = id
         self.url = url
         self.duration = duration
         
