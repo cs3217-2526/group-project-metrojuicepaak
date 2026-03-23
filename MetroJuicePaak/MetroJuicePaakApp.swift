@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct MetroJuicePaakApp: App {
+    //let audioService = AudioService()
+    let samplerViewModel =  SamplerViewModel()
     var body: some Scene {
         WindowGroup {
-            SamplerView()
+            SamplerView(viewModel: samplerViewModel)
         }
     }
 }
