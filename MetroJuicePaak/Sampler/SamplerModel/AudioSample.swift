@@ -11,8 +11,14 @@ struct AudioSample: Codable {
     let url: URL
     let duration: TimeInterval
     
+    var startTime: TimeInterval
+    var endTime: TimeInterval
+    
     init(url: URL, duration: TimeInterval) {
         self.url = url
         self.duration = duration
+        
+        self.startTime = 0.0
+        self.endTime = duration
     }
 }
