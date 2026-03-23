@@ -18,10 +18,9 @@ enum AudioServiceError: Error {
 class AudioService {
     
     private var audioSession: AVAudioSession
-    private let audioApplication = AVAudioApplication.shared
-    private let audioEngine = AVAudioEngine()
-    private var activeRecorder: AVAudioRecorder?
-    private var recordingIdentifier: UUID?
+    internal let audioApplication = AVAudioApplication.shared
+    internal let audioEngine = AudioEngine()
+    internal var activeRecorder: AVAudioRecorder?
     
     init() async throws {
         self.audioSession = AVAudioSession.sharedInstance()
@@ -51,26 +50,6 @@ class AudioService {
     }
     
 
-    // MARK: Recording settings for AVAudioRecorder
-    
-    private func recordingSettings() -> [String: Any] {
-        return [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44100.0,
-            AVNumberOfChannelsKey: 2,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ]
-    }
-
-    private func compressedRecordingSettings() -> [String: Any] {
-        return [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 22050.0,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
-        ]
-    }
-    
     @objc private func handleInterruption(notification: Notification) {
         guard let userInfo = notification.userInfo,
               let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
@@ -96,32 +75,7 @@ class AudioService {
             break
         }
     }
-    
-    
-    
-//    func recordSample() async throws -> AudioSample {
-//        // Request permission if needed
-//        let hasPermission = await requestMicrophonePermission()
-//        guard hasPermission else {
-//            throw AudioServiceError.permissionDenied
-//        }
-//        
-//        // TODO: Implement with AVAudioRecorder
-//        // This is a placeholder
-//        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sample_\(UUID().uuidString).m4a")
-//        return AudioSample(url: url, duration: 0)
-//    }
-//    
-//    func stopRecording() async throws -> AudioSample? {
-//        // TODO: Implement stopping and returning the recorded sample
-//        nil
-//    }
-//    
-//    func playSample(_ sample: AudioSample) {
-//        // TODO: Implement with AVAudioPlayer or AVAudioEngine
-//    }
-//    
-//    func stopPlayingSample() {
-//        
-//    }
 }
+
+
+
