@@ -19,7 +19,7 @@ class AudioService {
     
     private var audioSession: AVAudioSession
     internal let audioApplication = AVAudioApplication.shared
-    internal let audioEngine = AVAudioEngine()
+    internal let audioEngine = AudioEngine()
     internal var activeRecorder: AVAudioRecorder?
     
     init() async throws {
@@ -40,11 +40,33 @@ class AudioService {
         )
         try audioSession.setActive(true)
         
-        }
+        print("✅ Audio session configured")
+        print("   Category: \(audioSession.category)")
+        print("   Mode: \(audioSession.mode)")
+        print("   Output volume: \(audioSession.outputVolume)")
+        print("   Is other audio playing: \(audioSession.isOtherAudioPlaying)")
+    }
     
     private func configureAudioApplication() async throws {
-        let granted = await AVAudioApplication.requestRecordPermission()
-        if !granted {
+        // Check current permission status
+        let currentPermission = audioApplication.recordPermission
+        print("🎤 Current microphone permission: \(currentPermission.rawValue)")
+        
+        switch currentPermission {
+        case .undetermined:
+            print("🎤 Requesting microphone permission...")
+            let granted = await AVAudioApplication.requestRecordPermission()
+            print("🎤 Permission granted: \(granted)")
+            if !granted {
+                throw AudioServiceError.recordPermissionDenied
+            }
+        case .denied:
+            print("❌ Microphone permission denied. Please enable in System Settings.")
+            throw AudioServiceError.recordPermissionDenied
+        case .granted:
+            print("✅ Microphone permission already granted")
+        @unknown default:
+            print("⚠️ Unknown permission status")
             throw AudioServiceError.recordPermissionDenied
         }
     }
