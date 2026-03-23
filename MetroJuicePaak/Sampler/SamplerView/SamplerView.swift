@@ -53,10 +53,10 @@ struct SamplerView: View {
     }
 }
 
-#Preview("Empty Sampler") {
-    SamplerView(viewModel: .mockForPreview())
-}
-
-#Preview("With Loaded Samples") {
-    SamplerView(viewModel: .mockWithSamples())
-}
+//#Preview("Empty Sampler") {
+//    SamplerView(viewModel: .mockForPreview())
+//}
+//
+//#Preview("With Loaded Samples") {
+//    SamplerView(viewModel: .mockWithSamples())
+//}

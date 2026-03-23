@@ -55,41 +55,41 @@ struct SamplerPadButton: View {
         )
     }
 }
-#Preview("Blue Pad - Empty") {
-    SamplerPadButton(
-        id: UUID(),
-        viewModel: .mockForPreview(),
-        isSampleLoaded: false
-    )
-    .frame(width: 100, height: 100)
-    .padding()
-}
-
-#Preview("Red Pad - Loaded") {
-    SamplerPadButton(
-        id: UUID(),
-        viewModel: .mockForPreview(),
-        isSampleLoaded: true,
-        UIElements: SamplerPadButtonUIElements(color: .red)
-    )
-    .frame(width: 100, height: 100)
-    .padding()
-}
-
-#Preview("All Colors") {
-    let colors: [SamplerPadColour] = [.blue, .red, .green, .yellow, .purple, .orange, .pink, .teal]
-    let viewModel = SamplerViewModel.mockForPreview()
-    
-    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
-        ForEach(colors, id: \.self) { color in
-            SamplerPadButton(
-                id: UUID(),
-                viewModel: viewModel,
-                isSampleLoaded: false,
-                UIElements: SamplerPadButtonUIElements(color: color)
-            )
-        }
-    }
-    .padding()
-}
-
+//#Preview("Blue Pad - Empty") {
+//    SamplerPadButton(
+//        id: UUID(),
+//        viewModel: .mockForPreview(),
+//        isSampleLoaded: false
+//    )
+//    .frame(width: 100, height: 100)
+//    .padding()
+//}
+//
+//#Preview("Red Pad - Loaded") {
+//    SamplerPadButton(
+//        id: UUID(),
+//        viewModel: .mockForPreview(),
+//        isSampleLoaded: true,
+//        UIElements: SamplerPadButtonUIElements(color: .red)
+//    )
+//    .frame(width: 100, height: 100)
+//    .padding()
+//}
+//
+//#Preview("All Colors") {
+//    let colors: [SamplerPadColour] = [.blue, .red, .green, .yellow, .purple, .orange, .pink, .teal]
+//    let viewModel = SamplerViewModel.mockForPreview()
+//    
+//    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+//        ForEach(colors, id: \.self) { color in
+//            SamplerPadButton(
+//                id: UUID(),
+//                viewModel: viewModel,
+//                isSampleLoaded: false,
+//                UIElements: SamplerPadButtonUIElements(color: color)
+//            )
+//        }
+//    }
+//    .padding()
+//}
+//
