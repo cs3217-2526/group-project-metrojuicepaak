@@ -30,3 +30,5 @@ project.xcworkspace/xcuserdata/
 # Testing
 *.xccovreport
 *.xccovarchive
+
+.gemini/
