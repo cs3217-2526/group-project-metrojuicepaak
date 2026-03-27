@@ -101,6 +101,13 @@ class SamplerViewModel {
             }
         }
     }
+    
+    // MARK: - Navigation / Factories
+        
+    func makeSequencerViewModel() -> StepSequencerViewModel {
+        let sortedPads = Array(pads.values).sorted(by: { $0.id.uuidString < $1.id.uuidString })
+        return StepSequencerViewModel(pads: sortedPads, audioService: audioService)
+    }
 }
 
 
