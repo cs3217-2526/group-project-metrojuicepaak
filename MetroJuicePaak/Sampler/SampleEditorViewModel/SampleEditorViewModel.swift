@@ -15,6 +15,7 @@ class SampleEditorViewModel {
     var startRatio: CGFloat = 0.0
     var endRatio: CGFloat = 1.0
     private let audioService: AudioService
+    var isPlayingPreview: Bool = false
     
     let pad: SamplerPad
     
@@ -43,6 +44,40 @@ class SampleEditorViewModel {
             startTime: currentStart,
             endTime: currentEnd
         )
+    }
+    
+    func togglePlayback() async {
+        guard let sample = pad.sample else { return }
+        
+        if isPlayingPreview {
+            // STOP
+            await audioService.stopAudio(identifier: sample.id)
+            await MainActor.run { self.isPlayingPreview = false }
+        } else {
+            // PLAY
+            await MainActor.run { self.isPlayingPreview = true }
+            
+            let currentStart = TimeInterval(startRatio) * sample.duration
+            let currentEnd = TimeInterval(endRatio) * sample.duration
+            
+            await audioService.playAudio(
+                identifier: sample.id,
+                startTime: currentStart,
+                endTime: currentEnd
+            )
+            
+            // Note: In a production app, use AVAudioPlayerNode's completion
+            // handler to set isPlayingPreview back to false when the segment finishes naturally.
+        }
+    }
+    
+    // Kill audio if they move a pin while playing
+    func stopIfPlaying() {
+        guard let sample = pad.sample, isPlayingPreview else { return }
+        Task {
+            await audioService.stopAudio(identifier: sample.id)
+            await MainActor.run { self.isPlayingPreview = false }
+        }
     }
     
     private func extractAmplitudes() {

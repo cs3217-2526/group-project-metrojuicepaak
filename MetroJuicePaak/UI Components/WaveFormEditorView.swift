@@ -51,6 +51,7 @@ struct WaveformEditorView: View {
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
+                                        viewModel.stopIfPlaying()
                                         // 1. Calculate how much the ratio changed based on the total width
                                         let deltaRatio = value.translation.width / geometry.size.width
                                         
@@ -73,6 +74,7 @@ struct WaveformEditorView: View {
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
+                                        viewModel.stopIfPlaying()
                                         let deltaRatio = value.translation.width / geometry.size.width
                                         let proposedRatio = lastEndRatio + deltaRatio
                                         
@@ -87,14 +89,15 @@ struct WaveformEditorView: View {
                 }
                 HStack {
                     Button {
-                        Task { await viewModel.playPreview() }
+                        Task { await viewModel.togglePlayback() }
                     } label: {
-                        Image(systemName: "play.circle.fill")
+                        Image(systemName: viewModel.isPlayingPreview ? "stop.circle.fill" : "play.circle.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(viewModel.isPlayingPreview ? .red : .cyan)
+                            .contentTransition(.symbolEffect(.replace))
                     }
                     .padding(.top, 10)
-                } 
+                }
                 .padding(.horizontal, 4)
             }
         }
