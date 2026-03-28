@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AVFoundation
 
 protocol SamplerPadDelegate: AnyObject {
     func didSampleLoad(didSelectPad id: ObjectIdentifier)
@@ -30,6 +31,14 @@ class SamplerPad: Identifiable, Codable {
     }
     
     func loadAudioSample(from url: URL, id: String) {
-        let sample = AudioSample(id: id, url: url, duration: 1)
-        self.sample = sample    }
+        var realDuration: TimeInterval = 1.0
+        
+        // Calculate the actual duration of the file
+        if let file = try? AVAudioFile(forReading: url) {
+            realDuration = Double(file.length) / file.processingFormat.sampleRate
+        }
+        
+        let sample = AudioSample(id: id, url: url, duration: realDuration)
+        self.sample = sample
+    }
 }

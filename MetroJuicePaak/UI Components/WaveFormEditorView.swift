@@ -8,16 +8,8 @@
 import SwiftUI
 import Combine
 
-// Mocking the protocol for now so it compiles
-protocol SampleViewModelProtocol: ObservableObject {
-    var waveformAmplitudes: [CGFloat] { get }
-}
-
-struct WaveformEditorView<ViewModel: SampleViewModelProtocol>: View {
-    @ObservedObject var viewModel: ViewModel
-    
-    @State private var startRatio: CGFloat = 0.0
-    @State private var endRatio: CGFloat = 1.0
+struct WaveformEditorView: View {
+    @State var viewModel: SampleEditorViewModel
     @State private var lastStartRatio: CGFloat = 0.0
     @State private var lastEndRatio: CGFloat = 1.0
     
@@ -55,7 +47,7 @@ struct WaveformEditorView<ViewModel: SampleViewModelProtocol>: View {
                         
                         // 2. The Left Trim Handle (Start Time)
                         TrimHandle()
-                            .offset(x: startRatio * geometry.size.width)
+                            .offset(x: viewModel.startRatio * geometry.size.width)
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
@@ -67,17 +59,17 @@ struct WaveformEditorView<ViewModel: SampleViewModelProtocol>: View {
                                         
                                         // 3. Clamp logic: Cannot go below 0.0, and cannot cross the right handle
                                         // We leave a tiny 0.01 buffer so the handles don't perfectly overlap and get stuck
-                                        startRatio = max(0.0, min(proposedRatio, endRatio - 0.01))
+                                        viewModel.startRatio = max(0.0, min(proposedRatio, viewModel.endRatio - 0.01))
                                     }
                                     .onEnded { _ in
                                         // 4. When the drag finishes, update the anchor for the next time it's touched
-                                        lastStartRatio = startRatio
+                                        lastStartRatio = viewModel.startRatio
                                     }
                             )
 
                         // 3. The Right Trim Handle (End Time)
                         TrimHandle()
-                            .offset(x: (endRatio * geometry.size.width) - 4)
+                            .offset(x: (viewModel.endRatio * geometry.size.width) - 4)
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
@@ -85,10 +77,10 @@ struct WaveformEditorView<ViewModel: SampleViewModelProtocol>: View {
                                         let proposedRatio = lastEndRatio + deltaRatio
                                         
                                         // Clamp logic: Cannot go above 1.0, and cannot cross the left handle
-                                        endRatio = min(1.0, max(proposedRatio, startRatio + 0.01))
+                                        viewModel.endRatio = min(1.0, max(proposedRatio, viewModel.startRatio + 0.01))
                                     }
                                     .onEnded { _ in
-                                        lastEndRatio = endRatio
+                                        lastEndRatio = viewModel.endRatio
                                     }
                             )
                     }
@@ -116,23 +108,4 @@ struct TrimHandle: View {
                     .frame(width: 30)
             )
     }
-}
-
-
-
-class PreviewMockSampleViewModel: SampleViewModelProtocol {
-    @Published var waveformAmplitudes: [CGFloat] = []
-    
-    init() {
-        // Generate dummy peaks so the Canvas has something to draw
-        self.waveformAmplitudes = (0..<100).map { _ in
-            CGFloat.random(in: 0.1...1.0)
-        }
-    }
-}
-
-// 2. The actual preview macro
-#Preview("Waveform Editor") {
-    WaveformEditorView(viewModel: PreviewMockSampleViewModel())
-        .padding()
 }

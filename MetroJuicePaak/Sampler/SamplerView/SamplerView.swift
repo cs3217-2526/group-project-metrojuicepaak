@@ -69,13 +69,20 @@ struct SamplerView: View {
             VStack {
                 Text("Editor for Pad: \(pad.id.uuidString.prefix(5))")
                     .font(.headline)
+                    .padding()
                 
-                // We will drop the real WaveformEditorView here in Phase 3
+                // Instantiate the ViewModel and the View
+                let editorViewModel = SampleEditorViewModel(pad: pad)
+                WaveformEditorView(viewModel: editorViewModel)
+                    .padding()
                 
                 Button("Done") {
-                    viewModel.padToEdit = nil // Dismisses the sheet
+                    // Save the math back to the model
+                    editorViewModel.saveEdits()
+                    viewModel.padToEdit = nil // Dismiss sheet
                 }
                 .padding()
+                .buttonStyle(.borderedProminent)
             }
             .presentationDetents([.medium, .large])
         }
