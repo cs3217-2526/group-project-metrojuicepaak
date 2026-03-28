@@ -35,7 +35,10 @@ struct SamplerView: View {
                 }
                 
                 HStack {
-                    // Placeholder for future controls
+                    // Edit Mode Toggle
+                    Toggle("Edit Mode", isOn: Bindable(viewModel).isEditMode)
+                        .toggleStyle(.button)
+                        .tint(.orange)
                 }
                 .frame(height: 60)
             }
@@ -46,14 +49,36 @@ struct SamplerView: View {
             
             // MARK: - 4x4 Sampler Grid
             LazyVGrid(columns: columns, spacing: 12) {
-                // Iterate over PRESENTATION models, not Model objects
                 ForEach(Array(viewModel.pads.values).sorted(by: { $0.id.uuidString < $1.id.uuidString })) { pad in
                     SamplerPadButton(id: pad.id, viewModel: viewModel, isSampleLoaded: pad.isSampleLoaded)
+                        // Optional: Give visual feedback when edit mode is on
+                        .opacity(viewModel.isEditMode && !pad.isSampleLoaded ? 0.5 : 1.0)
+                        .overlay(
+                            viewModel.isEditMode && pad.isSampleLoaded
+                            ? RoundedRectangle(cornerRadius: 12).stroke(Color.orange, lineWidth: 3)
+                            : nil
+                        )
                 }
             }
             .padding()
         }
         .padding()
+        // MARK: - Editor Sheet Navigation
+        // This watches the padToEdit variable. When it's not nil, it slides up a view.
+        .sheet(item: Bindable(viewModel).padToEdit) { pad in
+            VStack {
+                Text("Editor for Pad: \(pad.id.uuidString.prefix(5))")
+                    .font(.headline)
+                
+                // We will drop the real WaveformEditorView here in Phase 3
+                
+                Button("Done") {
+                    viewModel.padToEdit = nil // Dismisses the sheet
+                }
+                .padding()
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 }
 

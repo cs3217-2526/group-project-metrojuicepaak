@@ -17,6 +17,8 @@ class SamplerViewModel {
     
     var isRecording: Bool = false
     var isPlaying: Bool = false
+    var isEditMode: Bool = false
+    var padToEdit: SamplerPad? = nil
     
     init(audioService: AudioService) {
         
@@ -36,6 +38,20 @@ class SamplerViewModel {
     func handlePadPressed(_ padId: UUID) async {
         guard let pad = pads[padId] else {
             print("❌ Pad not found: \(padId)")
+            return
+        }
+        
+        // INTERCEPT FOR EDIT MODE
+        if isEditMode {
+            if pad.isSampleLoaded {
+                print("✏️ Selecting pad for editing: \(padId)")
+                // Setting this will trigger the .sheet in SwiftUI
+                await MainActor.run {
+                    self.padToEdit = pad
+                }
+            } else {
+                print("⚠️ Cannot edit an empty pad")
+            }
             return
         }
         
