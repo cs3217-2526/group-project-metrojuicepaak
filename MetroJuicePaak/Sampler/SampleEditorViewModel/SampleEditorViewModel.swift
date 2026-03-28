@@ -14,11 +14,13 @@ class SampleEditorViewModel {
     var waveformAmplitudes: [CGFloat] = []
     var startRatio: CGFloat = 0.0
     var endRatio: CGFloat = 1.0
+    private let audioService: AudioService
     
     let pad: SamplerPad
     
-    init(pad: SamplerPad) {
+    init(pad: SamplerPad, AudioService: AudioService) {
         self.pad = pad
+        self.audioService = AudioService
         
         // Load existing trim boundaries if they exist
         if let sample = pad.sample, sample.duration > 0 {
@@ -27,6 +29,20 @@ class SampleEditorViewModel {
         }
         
         extractAmplitudes()
+    }
+    
+    func playPreview() async {
+        guard let sample = pad.sample else { return }
+        
+        // Calculate exact time based on CURRENT ratio, not saved ratio
+        let currentStart = TimeInterval(startRatio) * sample.duration
+        let currentEnd = TimeInterval(endRatio) * sample.duration
+        
+        await audioService.playAudio(
+            identifier: sample.id,
+            startTime: currentStart,
+            endTime: currentEnd
+        )
     }
     
     private func extractAmplitudes() {

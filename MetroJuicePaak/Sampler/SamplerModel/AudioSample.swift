@@ -11,6 +11,7 @@ struct AudioSample: Codable {
     let url: URL
     let id: String
     let duration: TimeInterval
+    var miniWaveform: [CGFloat] = []
     
     var startTime: TimeInterval
     var endTime: TimeInterval

@@ -7,10 +7,11 @@
 
 import Foundation
 import Observation
+import AVFoundation
 
 @Observable
 class SamplerViewModel {
-    private let audioService: AudioService
+    let audioService: AudioService
     private var audioTempFileStore = AudioTempFileStore()
     
     private(set) var pads: [UUID: SamplerPad] = [:]
@@ -107,6 +108,11 @@ class SamplerViewModel {
                 if let audioFileURL = await audioService.stopRecording() {
                     print("💾 Loading sample into pad: \(padId)")
                     pads[padId]?.loadAudioSample(from: audioFileURL, id: padId.uuidString)
+                    
+                    // GENERATE AND CACHE THE WAVEFORM
+                    let miniForm = await generateMiniWaveform(for: audioFileURL)
+                    pads[padId]?.sample?.miniWaveform = miniForm
+                
                     isRecording = false
                     
                     do {
@@ -124,6 +130,33 @@ class SamplerViewModel {
                 }
             }
         }
+    }
+    
+    // Generate miniwaveforms after recording, so we can show a visual representation of the sample on the pad
+    private func generateMiniWaveform(for url: URL) async -> [CGFloat] {
+        // Run on background thread
+        return await Task.detached {
+            guard let file = try? AVAudioFile(forReading: url),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else { return [] }
+            
+            try? file.read(into: buffer)
+            guard let channelData = buffer.floatChannelData?[0] else { return [] }
+            
+            let frameCount = Int(file.length)
+            let bucketCount = 20 // Low res for the small pad UI
+            let framesPerBucket = frameCount / bucketCount
+            var amplitudes: [CGFloat] = []
+            
+            for i in 0..<bucketCount {
+                var maxAmplitude: Float = 0.0
+                let startFrame = i * framesPerBucket
+                for j in 0..<framesPerBucket where (startFrame + j) < frameCount {
+                    maxAmplitude = max(maxAmplitude, abs(channelData[startFrame + j]))
+                }
+                amplitudes.append(CGFloat(maxAmplitude))
+            }
+            return amplitudes
+        }.value
     }
 }
 

@@ -85,6 +85,16 @@ struct WaveformEditorView: View {
                             )
                     }
                 }
+                HStack {
+                    Button {
+                        Task { await viewModel.playPreview() }
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.cyan)
+                    }
+                    .padding(.top, 10)
+                } 
                 .padding(.horizontal, 4)
             }
         }

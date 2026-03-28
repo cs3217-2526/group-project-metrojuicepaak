@@ -72,7 +72,7 @@ struct SamplerView: View {
                     .padding()
                 
                 // Instantiate the ViewModel and the View
-                let editorViewModel = SampleEditorViewModel(pad: pad)
+                let editorViewModel = SampleEditorViewModel(pad: pad, AudioService: viewModel.audioService)
                 WaveformEditorView(viewModel: editorViewModel)
                     .padding()
                 
