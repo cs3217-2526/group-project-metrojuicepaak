@@ -56,20 +56,14 @@ final class AudioEngine {
         print("✅ Loaded audio file: \(id) from \(url.lastPathComponent)")
     }
 
-    func playAudioFile(id: String, volume: Float = 1.0, pan: Float = 0.0) {
+    func playAudioFile(id: String, startTime: TimeInterval = 0, endTime: TimeInterval? = nil, volume: Float = 1.0, pan: Float = 0.0) {
         guard
             let player = playerNodes[id],
             let file = audioFiles[id]
         else {
             print("❌ Cannot play: player or file not found for id: \(id)")
-            print("   Available IDs: \(playerNodes.keys.joined(separator: ", "))")
             return
         }
-
-//        // Stop if currently playing to allow re-triggering
-//        if player.isPlaying {
-//            player.stop()
-//        }
 
         player.volume = volume
         player.pan = pan
@@ -86,17 +80,31 @@ final class AudioEngine {
             }
         }
         
-        print("🔊 Engine running: \(audioEngine.isRunning)")
-        print("🔊 Main mixer volume: \(audioEngine.mainMixerNode.volume)")
-        print("🔊 Player volume: \(player.volume), pan: \(player.pan)")
-
-        // Schedule and play
-        player.scheduleFile(file, at: nil) {
-            print("🎵 Finished playing: \(id)")
-        }
-        player.play()
+        // 1. Calculate the starting frame
+        let sampleRate = file.processingFormat.sampleRate
+        let startFrame = AVAudioFramePosition(startTime * sampleRate)
         
-        print("▶️ Playing audio: \(id), isPlaying: \(player.isPlaying)")
+        // 2. Determine the actual end time (use the provided endTime, or default to the file's total length)
+        let actualEndTime = endTime ?? (Double(file.length) / sampleRate)
+        
+        // 3. Prevent fatal math errors if start time is somehow greater than end time
+        let durationInSeconds = max(0, actualEndTime - startTime)
+        let requestedFrameCount = AVAudioFrameCount(durationInSeconds * sampleRate)
+        
+        // 4. Clamp the frame count so you don't accidentally ask AVFoundation to read past the end of the buffer (which will crash)
+        let maxAvailableFrames = AVAudioFrameCount(file.length) - AVAudioFrameCount(startFrame)
+        let safeFrameCount = min(requestedFrameCount, maxAvailableFrames)
+
+        if safeFrameCount > 0 {
+            // Use scheduleSegment instead of scheduleFile
+            player.scheduleSegment(file, startingFrame: startFrame, frameCount: safeFrameCount, at: nil) {
+                print("🎵 Finished playing segment: \(id)")
+            }
+            player.play()
+            print("▶️ Playing audio segment: \(id), isPlaying: \(player.isPlaying)")
+        } else {
+            print("⚠️ Segment duration is 0 or negative. Nothing to play.")
+        }
     }
 
     func stopPlayingFile(id: String) {

@@ -39,9 +39,17 @@ class SamplerViewModel {
             return
         }
         
-        if pad.isSampleLoaded {
+        if pad.isSampleLoaded, let sampleId = pad.sampleID {
             print("🎵 Playing sample on pad: \(padId)")
-            await audioService.playAudio(identifier: pad.sampleID!)
+            // Extract the trim values from the model
+            let start = pad.sample?.startTime ?? 0.0
+            let end = pad.sample?.endTime
+            
+            await audioService.playAudio(
+                        identifier: sampleId,
+                        startTime: start,
+                        endTime: end
+                    )
         } else {
             if isRecording {
                 print("⚠️ Already recording, ignoring pad press")

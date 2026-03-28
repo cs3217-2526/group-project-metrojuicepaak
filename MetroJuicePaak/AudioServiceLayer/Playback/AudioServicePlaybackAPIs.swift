@@ -24,10 +24,18 @@ extension AudioService {
     /// Plays a previously loaded audio file
     /// - Parameters:
     ///   - identifier: The identifier of the audio to play
+    ///   - startTime: Where to begin playback (in seconds)
+    ///   - endTime: Where to end playback (in seconds). If nil, plays to the end.
     ///   - volume: Playback volume (0.0 to 1.0)
     ///   - pan: Stereo pan (-1.0 left to 1.0 right)
-    func playAudio(identifier: String, volume: Float = 1.0, pan: Float = 0.0) async {
-        audioEngine.playAudioFile(id: identifier, volume: volume, pan: pan)
+    func playAudio(identifier: String, startTime: TimeInterval = 0, endTime: TimeInterval? = nil, volume: Float = 1.0, pan: Float = 0.0) async {
+        audioEngine.playAudioFile(
+            id: identifier,
+            startTime: startTime,
+            endTime: endTime,
+            volume: volume,
+            pan: pan
+        )
     }
     
     /// Stops playback of a specific audio file
