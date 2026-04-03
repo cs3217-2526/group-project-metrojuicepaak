@@ -8,71 +8,99 @@
 import SwiftUI
 
 struct TrackHeaderView: View {
-    let trackIndex: Int
+    let trackId: UUID
     var viewModel: StepSequencerViewModel
     let rowHeight: CGFloat
     
     var body: some View {
-        if trackIndex < viewModel.sequencerModel.tracks.count {
-            let currentTrack = viewModel.sequencerModel.tracks[trackIndex]
-            let currentPadNumber = viewModel.padNumber(for: currentTrack.padID)
-            
+        if let currentTrack = viewModel.sequencerModel.tracks[trackId] {
             HStack(spacing: 0) {
-                Button(action: { viewModel.removeTrack(at: trackIndex) }) {
-                    Image(systemName: "xmark")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                        .frame(width: 20, height: rowHeight)
-                }
-                .buttonStyle(.plain)
-                
-                Menu {
-                    Text("Assign Sample to Track").font(.caption)
-                    Divider()
-                    
-                    // Show only available pads PLUS the one currently assigned
-                    ForEach(viewModel.pads) { pad in
-                        let isCurrent = currentTrack.padID == pad.id
-                        let isUsed = viewModel.sequencerModel.tracks.contains(where: { $0.padID == pad.id })
-                        
-                        if isCurrent || !isUsed {
-                            let padNum = viewModel.padNumber(for: pad.id)
-                            Button {
-                                viewModel.updateTrackPad(trackIndex: trackIndex, newPadID: pad.id)
-                            } label: {
-                                HStack {
-                                    Text("Pad \(padNum)")
-                                    if pad.isSampleLoaded { Image(systemName: "waveform") }
-                                    if isCurrent { Image(systemName: "checkmark") }
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .foregroundColor(.gray)
-                            .font(.caption)
-                        
-                        VStack(alignment: .leading) {
-                            Text("Pad \(currentPadNumber)")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 10))
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.horizontal, 6)
-                    .frame(height: rowHeight)
-                }
+                deleteTrackButton
+                sampleAssignmentMenu(for: currentTrack)
             }
             .background(Color(white: 0.18))
             .cornerRadius(6)
         } else {
             EmptyView()
         }
+    }
+}
+
+// MARK: - Subcomponents
+private extension TrackHeaderView {
+    
+    var deleteTrackButton: some View {
+        Button(action: { viewModel.executeRemoveTrack(trackId: trackId) }) {
+            Image(systemName: "xmark")
+                .font(.caption2)
+                .foregroundColor(.gray)
+                .frame(width: 20, height: rowHeight)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    func sampleAssignmentMenu(for currentTrack: SequencerTrack) -> some View {
+        Menu {
+            Text("Assign Sample to Track").font(.caption)
+            Divider()
+            
+            sampleList(currentTrack: currentTrack)
+            
+            if currentTrack.sample != nil {
+                Divider()
+                removeSampleButton
+            }
+            
+        } label: {
+            menuLabel(for: currentTrack)
+        }
+    }
+    
+    @ViewBuilder
+    func sampleList(currentTrack: SequencerTrack) -> some View {
+        let availableSamples = Array(viewModel.sessionManager.repository.allSamples.values)
+        
+        if availableSamples.isEmpty {
+            Text("No samples loaded")
+        } else {
+            ForEach(availableSamples) { sample in
+                let isCurrent = currentTrack.sample?.id == sample.id
+                
+                Button(action: { viewModel.executeAddSample(trackId: trackId, newSample: sample) }) {
+                    HStack {
+                        Text(sample.userGivenName)
+                        if isCurrent { Image(systemName: "checkmark") }
+                    }
+                }
+            }
+        }
+    }
+    
+    var removeSampleButton: some View {
+        Button(role: .destructive, action: { viewModel.executeRemoveSample(trackId: trackId) }) {
+            Text("Remove Sample")
+            Image(systemName: "trash")
+        }
+    }
+    
+    func menuLabel(for currentTrack: SequencerTrack) -> some View {
+        HStack {
+            Image(systemName: "speaker.wave.2.fill")
+                .foregroundColor(currentTrack.sample != nil ? .cyan : .gray)
+                .font(.caption)
+            
+            VStack(alignment: .leading) {
+                Text(currentTrack.sample?.name ?? "Empty Track")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(currentTrack.sample != nil ? .white : .gray)
+            }
+            Spacer()
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 10))
+                .foregroundColor(.gray)
+        }
+        .padding(.horizontal, 6)
+        .frame(height: rowHeight)
     }
 }
