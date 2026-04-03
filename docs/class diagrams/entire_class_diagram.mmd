@@ -1,0 +1,327 @@
+---
+config:
+  layout: elk
+---
+classDiagram
+    direction BT
+    
+    %% ==========================================
+    %% DOMAIN LAYER (Pure Data - Value Types)
+    %% ==========================================
+    namespace DomainLayer {
+        class AudioSample {
+            <<struct / Codable>>
+            +UUID id
+            +String filename
+            +TimeInterval duration
+            +TimeInterval startTime
+            +TimeInterval endTime
+            +String userGivenName
+        }
+        
+        class AudioSampleRepository {
+            <<struct / Codable>>
+            +Dictionary~UUID, AudioSample~ allSamples
+            +Dictionary~Int, UUID~ padAssignments
+            +calculateNextDefaultName() String
+        }
+
+        class WaveformData {
+            <<struct>>
+            +[Float] points
+        }
+        
+        class RecordingResult {
+            <<struct>>
+            +URL url
+            +TimeInterval duration
+        }
+        
+        class SequencerTrack {
+            <<struct>>
+            +UUID trackId
+            +AudioSample? sample
+            +[Bool] steps
+        }
+        
+        class StepSequencerModel {
+            <<struct>>
+            +Dictionary~UUID, SequencerTrack~ tracks
+            +Int sequenceLength
+            +Double bpm
+        }
+
+        class SequencerSnapshot {
+            <<struct / Immutable>>
+            +Dictionary~UUID, SequencerTrack~ tracks
+            +Double bpm
+        }
+    }
+    
+    AudioSampleRepository *-- AudioSample : "Owns the Pool"
+    StepSequencerModel *-- SequencerTrack : "Contains"
+    
+    %% ==========================================
+    %% SERVICE LAYER (Facades & Protocols)
+    %% ==========================================
+    namespace ServiceLayer {
+        class PlaybackService {
+            <<protocol>>
+            +play(sample: AudioSample)
+            +stop(sample: AudioSample)
+        }
+
+        class RecordingService {
+            <<protocol>>
+            +startRecording()
+            +stopRecording() RecordingResult
+        }
+
+        class AudioConfigurable {
+            <<protocol>>
+            +URL storageDirectory
+            +setStorageDirectory(to: URL) throws
+        }
+
+        class WaveformGenerator {
+            <<protocol>>
+            +generateWaveform(sample: AudioSample, resolution: Int) async WaveformData
+        }
+        
+        class MusicEngine {
+            <<protocol>>
+            +startSequencer()
+            +stopSequencer()
+            +apply(snapshot: SequencerSnapshot)
+        }
+
+        class AudioService {
+            <<class / Facade>>
+            -URL storageDirectory
+            -AudioEngine engine
+            -SequencerSnapshot latestSnapshot
+        }
+
+        class WaveformCache {
+            <<actor / Decorator>>
+            -Dictionary~CacheKey, WaveformData~ cache
+            +generateWaveform(sample, resolution) async WaveformData
+        }
+    }
+
+    AudioService ..|> PlaybackService
+    AudioService ..|> RecordingService
+    AudioService ..|> AudioConfigurable
+    AudioService ..|> MusicEngine
+    WaveformCache ..|> WaveformGenerator
+    
+    %% ==========================================
+    %% PRESENTATION LAYER & COMMANDS
+    %% ==========================================
+    namespace PresentationLayer {
+        
+        class AudioSampleRepositoryViewModel {
+            <<class / @Observable (The Conductor)>>
+            +AudioSampleRepository repository
+            -Dictionary~UUID, AudioClipViewModel~ activeClipNodes
+            +getClipNode(for: UUID) AudioClipViewModel?
+            +addNewRecording(result: RecordingResult)
+        }
+
+        class AudioClipViewModel {
+            <<class / @Observable (The Worker)>>
+            +AudioSample sample
+            +WaveformData? thumbnailData
+            -WaveformGenerator generator
+            +refreshThumbnail(uiWidth: Int) async
+        }
+
+        class SamplerViewModel {
+            <<class / @Observable>>
+            +[AudioClipViewModel?] pads
+            -AudioSampleRepositoryViewModel sessionManager
+            -PlaybackService playbackService
+            -RecordingService recordingService
+            +playPad(index: Int)
+            +assignSampleToPad(sampleId: UUID, padIndex: Int)
+        }
+
+        class StepSequencerViewModel {
+            <<class / @Observable>>
+            +StepSequencerModel sequencerModel
+            -AudioSampleRepositoryViewModel sessionManager
+            -MusicEngine musicEngine
+            -UndoRedoManager undoRedoManager
+            +Bool isPlaying
+            +Int currentStep
+            +toggleStep(trackId: UUID, stepIndex: Int)
+            +mutateStep(trackId: UUID, stepIndex: Int)
+            +addTrack()
+            +removeTrack(at: UUID)
+            +assignSampleToTrack(trackId: UUID, sample: AudioSample)
+            +removeSampleFromTrack(trackId: UUID)
+            +togglePlayback()
+            +undo()
+            +redo()
+        }
+        
+        class SamplerWaveformEditorViewModel {
+            <<class / @Observable>>
+            +AudioClipViewModel clipNode
+            +TimeInterval tempStartTime
+            +TimeInterval tempEndTime
+            +previewTrim()
+            +saveEdits()
+        }
+    }
+    
+    %% COMMAND PATTERN
+    namespace CommandPattern {
+        class Command {
+            <<protocol>>
+            +execute()
+            +undo()
+        }
+
+        class UndoRedoManager {
+            <<class>>
+            -undoStack: [Command]
+            -redoStack: [Command]
+            +canUndo: Bool
+            +canRedo: Bool
+            +execute(command: Command)
+            +undo()
+            +redo()
+        }
+
+        class ToggleStepCommand {
+            <<class>>
+            -trackId: UUID
+            -stepIndex: Int
+            -viewModel: StepSequencerViewModel
+            +execute()
+            +undo()
+        }
+        
+        class AddTrackCommand {
+            <<class>>
+            -trackId: UUID
+            -viewModel: StepSequencerViewModel
+            +execute()
+            +undo()
+        }
+        
+        class DeleteTrackCommand {
+            <<class>>
+            -trackId: UUID
+            -trackBackup: SequencerTrack
+            -viewModel: StepSequencerViewModel
+            +execute()
+            +undo()
+        }
+
+        class AddSampleCommand {
+            <<class>>
+            -trackId: UUID
+            -sample: AudioSample
+            -viewModel: StepSequencerViewModel
+            +execute()
+            +undo()
+        }
+        
+        class DeleteSampleCommand {
+            <<class>>
+            -trackId: UUID
+            -sampleBackup: AudioSample
+            -viewModel: StepSequencerViewModel
+            +execute()
+            +undo()
+        }
+    }
+
+    AudioSampleRepositoryViewModel o-- AudioSampleRepository : "Manages Data"
+    AudioSampleRepositoryViewModel *-- AudioClipViewModel : "Creates & Caches (Factory)"
+    
+    AudioClipViewModel o-- AudioSample : "Wraps"
+    AudioClipViewModel --> WaveformGenerator : "Calls async"
+    
+    SamplerViewModel --> AudioSampleRepositoryViewModel : "Requests Nodes"
+    SamplerViewModel o-- AudioClipViewModel : "Holds References"
+    SamplerViewModel --> PlaybackService : "Routes Playback"
+    SamplerViewModel --> RecordingService : "Calls"
+    
+    StepSequencerViewModel --> AudioSampleRepositoryViewModel : "Requests Nodes"
+    StepSequencerViewModel o-- AudioClipViewModel : "Holds References"
+    StepSequencerViewModel --> MusicEngine : "Delegates Execution"
+    StepSequencerViewModel *-- StepSequencerModel : "Manages Mutable Data"
+    
+    SamplerWaveformEditorViewModel --> AudioClipViewModel : "Mutates & Refreshes"
+    SamplerWaveformEditorViewModel --> PlaybackService : "Previews"
+    
+    %% Snapshot relationships (The Bridge)
+    StepSequencerViewModel ..> SequencerSnapshot : "Creates & Passes"
+    MusicEngine ..> SequencerSnapshot : "Consumes"
+    
+    %% Command Pattern Relationships
+    ToggleStepCommand ..|> Command : "Implements"
+    AddTrackCommand ..|> Command : "Implements"
+    DeleteTrackCommand ..|> Command : "Implements"
+    AddSampleCommand ..|> Command : "Implements"
+    DeleteSampleCommand ..|> Command : "Implements"
+
+    UndoRedoManager o-- Command : "Manages Stack"
+    StepSequencerViewModel *-- UndoRedoManager : "Owns"
+    
+    ToggleStepCommand --> StepSequencerViewModel : "Calls mutateStep()"
+    AddTrackCommand --> StepSequencerViewModel : "Calls addTrack() & removeTrack()"
+    DeleteTrackCommand --> StepSequencerViewModel : "Calls removeTrack() & addTrack()"
+    AddSampleCommand --> StepSequencerViewModel : "Calls assignSampleToTrack() & removeSampleFromTrack()"
+    DeleteSampleCommand --> StepSequencerViewModel : "Calls removeSampleFromTrack() & assignSampleToTrack()"
+
+    %% ==========================================
+    %% UI LAYER (SwiftUI Views)
+    %% ==========================================
+    namespace UILayer {
+        class SamplerView {
+            <<struct / View>>
+            +SamplerViewModel viewModel
+        }
+
+        class SamplerPadView {
+            <<struct / View>>
+            +AudioClipViewModel clipNode
+        }
+
+        class StepSequencerView {
+            <<struct / View>>
+            +StepSequencerViewModel viewModel
+        }
+        
+        class StepButton {
+            <<struct / View>>
+            +Bool isActive
+            +Bool isCurrentStep
+            +action: () -> Void
+        }
+
+        class WaveformEditorView {
+            <<struct / View>>
+            +SamplerWaveformEditorViewModel viewModel
+        }
+        
+        class SampleThumbnailView {
+            <<struct / View>>
+            +WaveformData data
+        }
+    }
+
+    SamplerView *-- SamplerPadView : "Draws Grid"
+    SamplerPadView --> AudioClipViewModel : "Observes"
+    
+    StepSequencerView --> StepSequencerViewModel : "Observes"
+    StepSequencerView *-- StepButton : "Composes Grid"
+    
+    WaveformEditorView --> SamplerWaveformEditorViewModel : "@Bindable"
+    
+    SamplerPadView ..> SampleThumbnailView : "Passes Data"
+    StepSequencerView ..> SampleThumbnailView : "Passes Data"

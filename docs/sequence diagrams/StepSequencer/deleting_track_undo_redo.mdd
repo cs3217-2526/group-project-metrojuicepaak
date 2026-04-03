@@ -1,0 +1,57 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as StepSequencerView
+    participant VM as StepSequencerViewModel
+    participant URM as UndoRedoManager
+    participant Cmd as DeleteTrackCommand
+    participant Engine as MusicEngine
+
+    rect rgb(30, 40, 50)
+        note right of User: UNDO ACTION (Restores the Track)
+        User->>View: Taps Undo Button
+        View->>VM: undo()
+        activate VM
+        VM->>URM: undo()
+        activate URM
+        
+        URM->>URM: pop from undoStack
+        URM->>Cmd: undo()
+        activate Cmd
+        
+        note right of Cmd: Command uses its internal trackBackup
+        Cmd->>VM: restoreTrack(trackBackup)
+        
+        VM->>VM: Insert backup track into dictionary
+        VM->>VM: publishSnapshot()
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+        
+        URM->>URM: push to redoStack
+        deactivate Cmd
+        deactivate URM
+        deactivate VM
+    end
+    
+    rect rgb(40, 50, 40)
+        note right of User: REDO ACTION (Deletes the Track again)
+        User->>View: Taps Redo Button
+        View->>VM: redo()
+        activate VM
+        VM->>URM: redo()
+        activate URM
+        
+        URM->>URM: pop from redoStack
+        URM->>Cmd: execute()
+        activate Cmd
+        
+        Cmd->>VM: removeTrack(at: trackId)
+        
+        VM->>VM: Remove track from dictionary
+        VM->>VM: publishSnapshot()
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+        
+        URM->>URM: push to undoStack
+        deactivate Cmd
+        deactivate URM
+        deactivate VM
+    end
