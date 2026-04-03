@@ -7,15 +7,16 @@
 
 import Foundation
 
-struct SequencerTrack: Identifiable, Codable {
-    let id: UUID
-    var padID: UUID
+struct SequencerTrack: Identifiable, Codable, Equatable {
+    var id: UUID { trackId }
+    let trackId: UUID
+    var sample: AudioSample?
     
     var steps: [Bool]
     
-    init(id: UUID = UUID(), padID: UUID, numSteps: Int = 16) {
-        self.id = id
-        self.padID = padID
+    init(trackId: UUID = UUID(), sample: AudioSample? = nil, numSteps: Int = 16) {
+        self.trackId = trackId
+        self.sample = sample
         self.steps = Array(repeating: false, count: numSteps)
     }
 }

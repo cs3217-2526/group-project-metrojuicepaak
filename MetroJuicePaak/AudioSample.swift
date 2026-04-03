@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AudioSample: Codable {
+struct AudioSample: Codable, Equatable {
     
     // ─────────────────────────────────────────
     // Identity
