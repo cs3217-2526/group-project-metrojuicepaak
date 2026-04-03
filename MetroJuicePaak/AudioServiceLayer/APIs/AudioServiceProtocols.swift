@@ -12,8 +12,7 @@ import Foundation
 protocol AudioServiceProtocol: 
     AudioPlaybackService, 
     AudioRecordingService, 
-    AudioConfigurationService,
-    WaveformGenerationService {
+    AudioConfigurationService {
     
     /// Initializes the audio service
     /// - Throws: If initialization fails
