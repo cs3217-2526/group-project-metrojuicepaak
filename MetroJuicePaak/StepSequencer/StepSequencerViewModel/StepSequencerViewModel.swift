@@ -190,6 +190,9 @@ class StepSequencerViewModel {
         publishSnapshot()
     }
     
+    //dont fail silently
+    //if you ever decide to let the user type in a bpm: use error to inform user about valid bpm range
+    //if you ever decide to use a knob for bpm: use error to lock the knob
     func incrementBPM() { if bpm < 300 { bpm += 1 } }
     func decrementBPM() { if bpm > 40 { bpm -= 1 } }
     
