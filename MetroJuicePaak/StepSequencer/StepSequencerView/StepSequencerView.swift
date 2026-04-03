@@ -30,12 +30,12 @@ struct StepSequencerView: View {
                 }
                 
                 Menu {
-                    ForEach(viewModel.availableLengths, id: \.self) { length in
-                        Button("\(length) Steps") { viewModel.changeSequenceLength(to: length) }
+                    ForEach(viewModel.availableStepCounts, id: \.self) { stepCount in
+                        Button("\(stepCount) Steps") { viewModel.changeStepCount(to: stepCount) }
                     }
                 } label: {
                     HStack {
-                        Text("\(viewModel.sequencerModel.sequenceLength) Steps")
+                        Text("\(viewModel.sequencerModel.stepCount) Steps")
                             .fontWeight(.semibold)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption)
@@ -94,9 +94,9 @@ struct StepSequencerView: View {
                 let rowHeight = max(10, (gridGeometry.size.height - totalVerticalSpacing) / maxRows)
                 
                 let horizontalSpacing: CGFloat = 2.0
-                let totalHorizontalSpacing = CGFloat(viewModel.sequencerModel.sequenceLength - 1) * horizontalSpacing
+                let totalHorizontalSpacing = CGFloat(viewModel.sequencerModel.stepCount - 1) * horizontalSpacing
                 let availableGridWidth = gridGeometry.size.width - leftColumnWidth - 16
-                let stepWidth = max(1, (availableGridWidth - totalHorizontalSpacing) / CGFloat(viewModel.sequencerModel.sequenceLength))
+                let stepWidth = max(1, (availableGridWidth - totalHorizontalSpacing) / CGFloat(viewModel.sequencerModel.stepCount))
                 
                 HStack(alignment: .top, spacing: 4) {
                     // LEFT COLUMN: Track Headers
@@ -144,8 +144,8 @@ struct StepSequencerView: View {
                         ForEach(viewModel.sequencerModel.tracks) { track in
                             if let trackIndex = viewModel.sequencerModel.tracks.firstIndex(where: { $0.id == track.id }) {
                                 HStack(spacing: horizontalSpacing) {
-                                    ForEach(0..<viewModel.sequencerModel.sequenceLength, id: \.self) { stepIndex in
-                                        StepButton(
+                                    ForEach(0..<viewModel.sequencerModel.stepCount, id: \.self) { stepIndex in
+                                        StepView(
                                             isActive: viewModel.isStepActive(trackIndex: trackIndex, stepIndex: stepIndex),
                                             isCurrentStep: viewModel.isPlaying && viewModel.currentStep == stepIndex,
                                             width: stepWidth,

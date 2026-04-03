@@ -1,5 +1,5 @@
 //
-//  StepButton.swift
+//  StepView.swift
 //  MetroJuicePaak
 //
 //  Created by Edwin Wong on 27/03/2026.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct StepButton: View {
+struct StepView: View {
     let isActive: Bool
     let isCurrentStep: Bool
     let width: CGFloat

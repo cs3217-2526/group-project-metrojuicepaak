@@ -11,13 +11,13 @@ struct StepSequencerModel: Codable {
     var tracks: [UUID: SequencerTrack]
     var trackOrder: [UUID]
     
-    var sequenceLength: Int
+    var stepCount: Int
     var bpm: Double
     
-    init(tracks: [UUID: SequencerTrack] = [:], trackOrder: [UUID] = [], sequenceLength: Int = 16, bpm: Double = 120.0) {
+    init(tracks: [UUID: SequencerTrack] = [:], trackOrder: [UUID] = [], stepCount: Int = 16, bpm: Double = 120.0) {
         self.tracks = tracks
         self.trackOrder = trackOrder
-        self.sequenceLength = sequenceLength
+        self.stepCount = stepCount
         self.bpm = bpm
     }
 }

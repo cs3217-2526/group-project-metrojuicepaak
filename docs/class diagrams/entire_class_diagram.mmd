@@ -47,7 +47,7 @@ classDiagram
         class StepSequencerModel {
             <<struct>>
             +Dictionary~UUID, SequencerTrack~ tracks
-            +Int sequenceLength
+            +Int stepCount
             +Double bpm
         }
 
@@ -297,7 +297,7 @@ classDiagram
             +StepSequencerViewModel viewModel
         }
         
-        class StepButton {
+        class StepView {
             <<struct / View>>
             +Bool isActive
             +Bool isCurrentStep
@@ -319,7 +319,7 @@ classDiagram
     SamplerPadView --> AudioClipViewModel : "Observes"
     
     StepSequencerView --> StepSequencerViewModel : "Observes"
-    StepSequencerView *-- StepButton : "Composes Grid"
+    StepSequencerView *-- StepView : "Composes Grid"
     
     WaveformEditorView --> SamplerWaveformEditorViewModel : "@Bindable"
     

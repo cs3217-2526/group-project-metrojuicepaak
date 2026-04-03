@@ -12,14 +12,13 @@ import Observation
 class StepSequencerViewModel {
     private(set) var sequencerModel: StepSequencerModel
     
-    private let sessionManager: AudioSampleRepositoryViewModel // Provided via init
-    private let musicEngine: MusicEngine // Provided via init
+    private let sessionManager: AudioSampleRepositoryViewModel
+    private let musicEngine: MusicEngine
     private let undoRedoManager = UndoRedoManager()
     
     var isPlaying: Bool = false
-    var currentStep: Int = 0 // Updated by a callback from MusicEngine in real implementation
+    var currentStep: Int = 0
     
-    // The gatekeeper computed property
     var bpm: Double {
         get { sequencerModel.bpm }
         set {
@@ -28,7 +27,7 @@ class StepSequencerViewModel {
         }
     }
     
-    let availableLengths: [Int] = [6, 8, 12, 16, 24, 32]
+    let availableStepCounts: [Int] = [8, 16, 32]
     
     var canUndo: Bool { undoRedoManager.canUndo }
     var canRedo: Bool { undoRedoManager.canRedo }
@@ -53,54 +52,52 @@ class StepSequencerViewModel {
     
     func togglePlayback() {
         if isPlaying {
-            stop() //
+            stop()
         } else {
-            play() //
+            play()
         }
     }
     
     private func play() {
-        isPlaying = true //
-        currentStep = 0 //
-        publishSnapshot() // Push latest state before igniting
-        musicEngine.startSequencer() //
+        isPlaying = true
+        currentStep = 0
+        publishSnapshot()
+        musicEngine.startSequencer()
     }
     
     private func stop() {
-        isPlaying = false //
-        musicEngine.stopSequencer() //
-        currentStep = 0 //
+        isPlaying = false
+        musicEngine.stopSequencer()
+        currentStep = 0
     }
     
     // MARK: - Target Mutations (Called by Commands)
     
     internal func mutateStep(trackId: UUID, stepIndex: Int) {
         guard sequencerModel.tracks[trackId] != nil,
-              stepIndex < sequencerModel.sequenceLength else { return } //
+              stepIndex < sequencerModel.stepCount else { return }
         
-        sequencerModel.tracks[trackId]?.steps[stepIndex].toggle() //
-        publishSnapshot() //
+        sequencerModel.tracks[trackId]?.steps[stepIndex].toggle()
+        publishSnapshot()
     }
     
     internal func addTrack(track: SequencerTrack) {
-        sequencerModel.tracks[track.trackId] = track //
-        if !sequencerModel.trackOrder.contains(track.trackId) { //
-            sequencerModel.trackOrder.append(track.trackId) //
+        sequencerModel.tracks[track.trackId] = track
+        if !sequencerModel.trackOrder.contains(track.trackId) {
+            sequencerModel.trackOrder.append(track.trackId)
         }
-        publishSnapshot() //
+        publishSnapshot()
     }
     
     internal func removeTrack(at trackId: UUID) {
-        sequencerModel.tracks.removeValue(forKey: trackId) //
-        sequencerModel.trackOrder.removeAll { $0 == trackId } //
-        publishSnapshot() //
+        sequencerModel.tracks.removeValue(forKey: trackId)
+        sequencerModel.trackOrder.removeAll { $0 == trackId }
+        publishSnapshot()
     }
     
     internal func restoreTrack(_ track: SequencerTrack, at index: Int) {
-        // 1. Put the data back in the dictionary
         sequencerModel.tracks[track.trackId] = track
         
-        // 2. Put the UUID back in the exact UI order index to preserve visual consistency
         if !sequencerModel.trackOrder.contains(track.trackId) {
             let safeIndex = min(max(0, index), sequencerModel.trackOrder.count)
             sequencerModel.trackOrder.insert(track.trackId, at: safeIndex)
@@ -109,24 +106,24 @@ class StepSequencerViewModel {
     }
     
     internal func assignSampleToTrack(trackId: UUID, sample: AudioSample) {
-        sequencerModel.tracks[trackId]?.sample = sample //
-        publishSnapshot() //
+        sequencerModel.tracks[trackId]?.sample = sample
+        publishSnapshot()
     }
     
     internal func removeSampleFromTrack(trackId: UUID) {
-        sequencerModel.tracks[trackId]?.sample = nil //
-        publishSnapshot() //
+        sequencerModel.tracks[trackId]?.sample = nil
+        publishSnapshot()
     }
     
     // MARK: - Command Triggers (Called by UI)
     
     func toggleStep(trackId: UUID, stepIndex: Int) {
-        let command = ToggleStepCommand(trackId: trackId, stepIndex: stepIndex, viewModel: self) //
-        undoRedoManager.execute(command) //
+        let command = ToggleStepCommand(trackId: trackId, stepIndex: stepIndex, viewModel: self)
+        undoRedoManager.execute(command)
     }
     
     func executeAddTrack() {
-        let newTrack = SequencerTrack(numSteps: sequencerModel.sequenceLength)
+        let newTrack = SequencerTrack(defaultStepCount: sequencerModel.stepCount)
         let command = AddTrackCommand(track: newTrack, viewModel: self)
         undoRedoManager.execute(command)
     }
@@ -153,39 +150,53 @@ class StepSequencerViewModel {
     
     // MARK: - Utilities & Grid Sizing
     
-    func changeSequenceLength(to newLength: Int) {
-        let currentLength = sequencerModel.sequenceLength
-        guard newLength != currentLength else { return }
+    func changeStepCount(to newStepCount: Int) {
+        let currentStepCount = sequencerModel.stepCount
+        guard newStepCount != currentStepCount else { return }
         
-        // Loop through every track and resize its boolean array
         for (trackId, track) in sequencerModel.tracks {
-            var updatedTrack = track
+            var updatedTrack = track //
+            var newSteps = Array(repeating: false, count: newStepCount)
             
-            if newLength > currentLength {
-                // Grow: pad with false
-                let padding = Array(repeating: false, count: newLength - currentLength)
-                updatedTrack.steps.append(contentsOf: padding)
+            if newStepCount > currentStepCount {
+                // GROWING (e.g., 16 -> 32)
+                // Stretch the pattern out. oldIndex 1 becomes newIndex 2, leaving gaps of `false`.
+                for oldIndex in 0..<currentStepCount {
+                    let newIndex = Int(round(Double(oldIndex) * Double(newStepCount) / Double(currentStepCount)))
+                    if newIndex < newStepCount {
+                        newSteps[newIndex] = track.steps[oldIndex]
+                    }
+                }
             } else {
-                // Shrink: truncate
-                updatedTrack.steps = Array(updatedTrack.steps.prefix(newLength))
+                // SHRINKING (e.g., 16 -> 8)
+                // Compress the pattern. newIndex 1 pulls from oldIndex 2, effectively deleting oldIndex 1.
+                for newIndex in 0..<newStepCount {
+                    let oldIndex = Int(round(Double(newIndex) * Double(currentStepCount) / Double(newStepCount)))
+                    if oldIndex < currentStepCount {
+                        newSteps[newIndex] = track.steps[oldIndex]
+                    }
+                }
             }
+            
+            updatedTrack.steps = newSteps
             sequencerModel.tracks[trackId] = updatedTrack
         }
         
-        sequencerModel.sequenceLength = newLength
-        if currentStep >= newLength {
+        sequencerModel.stepCount = newStepCount
+        
+        if currentStep >= newStepCount {
             currentStep = 0
         }
         publishSnapshot()
     }
     
-    func incrementBPM() { if bpm < 300 { bpm += 1 } } //
-    func decrementBPM() { if bpm > 40 { bpm -= 1 } } //
+    func incrementBPM() { if bpm < 300 { bpm += 1 } }
+    func decrementBPM() { if bpm > 40 { bpm -= 1 } }
     
-    func undo() { undoRedoManager.undo() } //
-    func redo() { undoRedoManager.redo() } //
+    func undo() { undoRedoManager.undo() }
+    func redo() { undoRedoManager.redo() }
     
     func isStepActive(trackId: UUID, stepIndex: Int) -> Bool {
-        return sequencerModel.tracks[trackId]?.steps[stepIndex] ?? false //
+        return sequencerModel.tracks[trackId]?.steps[stepIndex] ?? false
     }
 }

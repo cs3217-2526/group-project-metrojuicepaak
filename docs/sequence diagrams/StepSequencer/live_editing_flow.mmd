@@ -7,7 +7,7 @@ sequenceDiagram
     participant Cmd as ToggleStepCommand
     participant Engine as MusicEngine
 
-    User->>View: Taps StepButton
+    User->>View: Taps StepView
     View->>VM: toggleStep(trackId, stepIndex)
     activate VM
     

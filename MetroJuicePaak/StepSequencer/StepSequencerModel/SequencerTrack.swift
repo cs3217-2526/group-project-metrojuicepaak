@@ -14,9 +14,9 @@ struct SequencerTrack: Identifiable, Codable, Equatable {
     
     var steps: [Bool]
     
-    init(trackId: UUID = UUID(), sample: AudioSample? = nil, numSteps: Int = 16) {
+    init(trackId: UUID = UUID(), sample: AudioSample? = nil, defaultStepCount: Int = 16) {
         self.trackId = trackId
         self.sample = sample
-        self.steps = Array(repeating: false, count: numSteps)
+        self.steps = Array(repeating: false, count: defaultStepCount)
     }
 }
