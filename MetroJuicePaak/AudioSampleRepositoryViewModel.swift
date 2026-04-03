@@ -50,7 +50,7 @@ final class AudioSampleRepositoryViewModel {
     /// All live clip nodes, sorted by sample name.
     /// This is the list the SamplePickerView displays.
     var allClipNodes: [AudioClipViewModel] {
-        activeClipNodes.values.sorted { $0.sample.name < $1.sample.name }
+        activeClipNodes.values.sorted { $0.sample.name.localizedStandardCompare($1.sample.name) == .orderedAscending }
     }
 
     // ─────────────────────────────────────────
