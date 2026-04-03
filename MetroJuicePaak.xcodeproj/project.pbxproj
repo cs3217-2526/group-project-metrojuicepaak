@@ -68,6 +68,11 @@
 			path = MetroJuicePaakUITests;
 			sourceTree = "<group>";
 		};
+		57C207942F768E8900EDF446 /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = docs;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +103,7 @@
 		57B25FD42F69263A00D45B43 = {
 			isa = PBXGroup;
 			children = (
+				57C207942F768E8900EDF446 /* docs */,
 				57E8DE9D2F7043B100DAEF28 /* claude.md */,
 				57B260352F6E840E00D45B43 /* swiftlint.yml */,
 				57B260252F6927DC00D45B43 /* README.md */,
