@@ -6,105 +6,106 @@
 //
 
 import SwiftUI
-import Combine
 
 struct WaveformEditorView: View {
-    @State var viewModel: SampleEditorViewModel
+    @Bindable var viewModel: SamplerWaveformEditorViewModel
+    
+    // Store the drag anchors so the handles don't jump when touched
     @State private var lastStartRatio: CGFloat = 0.0
     @State private var lastEndRatio: CGFloat = 1.0
     
     var body: some View {
-        VStack {
-            if viewModel.waveformAmplitudes.isEmpty {
-                Text("Extracting audio buffer...")
-                    .foregroundStyle(.secondary)
-            } else {
-                GeometryReader { geometry in
-                    // Use a leading ZStack so our X offsets start perfectly from 0
-                    ZStack(alignment: .leading) {
-                        
-                        // 1. The Waveform (from Step 2)
-                        Path { path in
-                            let width = geometry.size.width
-                            let height = geometry.size.height
-                            let amplitudes = viewModel.waveformAmplitudes
-                            let count = amplitudes.count
-                            
-                            guard count > 1 else { return }
-                            
-                            for (index, amplitude) in amplitudes.enumerated() {
-                                let x = width * CGFloat(index) / CGFloat(count - 1)
-                                let y = height - (amplitude * height)
-                                
-                                if index == 0 {
-                                    path.move(to: CGPoint(x: x, y: y))
-                                } else {
-                                    path.addLine(to: CGPoint(x: x, y: y))
+        VStack(spacing: 20) {
+            Text("Editing: \(viewModel.clipNode.sample.name)")
+                .font(.headline)
+            
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                
+                // Directly read the ratios from the updated ViewModel
+                let startRatio = CGFloat(viewModel.tempStartRatio)
+                let endRatio = CGFloat(viewModel.tempEndRatio)
+                
+                ZStack(alignment: .leading) {
+                    
+                    // 1. Draw the High-Res Waveform Background
+                    if let waveform = viewModel.clipNode.thumbnailData {
+                        SampleThumbnailView(data: waveform, strokeColor: .cyan)
+                    } else {
+                        Text("Loading visual...")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    
+                    // 2. The Darkened "Trimmed Out" overlays
+                    Rectangle()
+                        .fill(Color.black.opacity(0.6))
+                        .frame(width: startRatio * width)
+                    
+                    Rectangle()
+                        .fill(Color.black.opacity(0.6))
+                        .frame(width: (1.0 - endRatio) * width)
+                        .offset(x: endRatio * width)
+                    
+                    // 3. Left Handle (Start Time)
+                    TrimHandle()
+                        .offset(x: startRatio * width)
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    Task { await viewModel.stopIfPlaying() }
+                                    let deltaRatio = value.translation.width / width
+                                    let proposedRatio = lastStartRatio + deltaRatio
+                                    
+                                    // Clamp: Cannot go below 0, cannot cross Right Handle
+                                    let clampedRatio = max(0.0, min(proposedRatio, endRatio - 0.05))
+                                    
+                                    viewModel.tempStartRatio = Double(clampedRatio)
                                 }
-                            }
-                        }
-                        .stroke(Color.cyan, lineWidth: 2)
-                        
-                        // 2. The Left Trim Handle (Start Time)
-                        TrimHandle()
-                            .offset(x: viewModel.startRatio * geometry.size.width)
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        viewModel.stopIfPlaying()
-                                        // 1. Calculate how much the ratio changed based on the total width
-                                        let deltaRatio = value.translation.width / geometry.size.width
-                                        
-                                        // 2. Add that delta to the ANCHORED last ratio, not the active one
-                                        let proposedRatio = lastStartRatio + deltaRatio
-                                        
-                                        // 3. Clamp logic: Cannot go below 0.0, and cannot cross the right handle
-                                        // We leave a tiny 0.01 buffer so the handles don't perfectly overlap and get stuck
-                                        viewModel.startRatio = max(0.0, min(proposedRatio, viewModel.endRatio - 0.01))
-                                    }
-                                    .onEnded { _ in
-                                        // 4. When the drag finishes, update the anchor for the next time it's touched
-                                        lastStartRatio = viewModel.startRatio
-                                    }
-                            )
+                                .onEnded { _ in lastStartRatio = startRatio }
+                        )
 
-                        // 3. The Right Trim Handle (End Time)
-                        TrimHandle()
-                            .offset(x: (viewModel.endRatio * geometry.size.width) - 4)
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        viewModel.stopIfPlaying()
-                                        let deltaRatio = value.translation.width / geometry.size.width
-                                        let proposedRatio = lastEndRatio + deltaRatio
-                                        
-                                        // Clamp logic: Cannot go above 1.0, and cannot cross the left handle
-                                        viewModel.endRatio = min(1.0, max(proposedRatio, viewModel.startRatio + 0.01))
-                                    }
-                                    .onEnded { _ in
-                                        lastEndRatio = viewModel.endRatio
-                                    }
-                            )
-                    }
+                    // 4. Right Handle (End Time)
+                    TrimHandle()
+                        .offset(x: (endRatio * width) - 4) // offset by handle width
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    Task { await viewModel.stopIfPlaying() }
+                                    let deltaRatio = value.translation.width / width
+                                    let proposedRatio = lastEndRatio + deltaRatio
+                                    
+                                    // Clamp: Cannot go above 1, cannot cross Left Handle
+                                    let clampedRatio = min(1.0, max(proposedRatio, startRatio + 0.05))
+                                    
+                                    viewModel.tempEndRatio = Double(clampedRatio)
+                                }
+                                .onEnded { _ in lastEndRatio = endRatio }
+                        )
                 }
-                HStack {
-                    Button {
-                        Task { await viewModel.togglePlayback() }
-                    } label: {
-                        Image(systemName: viewModel.isPlayingPreview ? "stop.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(viewModel.isPlayingPreview ? .red : .cyan)
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                    .padding(.top, 10)
+                .onAppear {
+                    // Initialize drag anchors when view loads
+                    self.lastStartRatio = startRatio
+                    self.lastEndRatio = endRatio
                 }
-                .padding(.horizontal, 4)
+            }
+            .frame(height: 150)
+            .background(Color.black.opacity(0.8))
+            .cornerRadius(8)
+            
+            // Playback Controls
+            HStack(spacing: 40) {
+                Button {
+                    Task { await viewModel.togglePreview() }
+                } label: {
+                    Image(systemName: viewModel.isPlayingPreview ? "stop.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(viewModel.isPlayingPreview ? .red : .cyan)
+                        .contentTransition(.symbolEffect(.replace))
+                }
             }
         }
-        .frame(height: 150)
-        .frame(maxWidth: .infinity)
-        .background(Color.black.opacity(0.8))
-        .cornerRadius(8)
+        .padding()
     }
 }
 
