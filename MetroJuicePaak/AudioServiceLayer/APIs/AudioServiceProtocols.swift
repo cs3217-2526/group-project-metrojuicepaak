@@ -9,9 +9,9 @@ import Foundation
 
 /// Combined protocol that AudioService should conform to
 /// This provides the complete audio engine API
-protocol AudioServiceProtocol: 
-    AudioPlaybackService, 
-    AudioRecordingService, 
+protocol AudioServiceProtocol:
+    AudioPlaybackService,
+    AudioRecordingService,
     AudioConfigurationService {
     
     /// Initializes the audio service
