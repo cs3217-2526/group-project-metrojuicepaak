@@ -22,7 +22,6 @@ classDiagram
         class AudioSampleRepository {
             <<struct / Codable>>
             +Dictionary~UUID, AudioSample~ allSamples
-            +Dictionary~Int, UUID~ padAssignments
             +calculateNextDefaultName() String
         }
 
