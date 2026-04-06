@@ -1,8 +1,8 @@
 //
-//  RecordingService.swift
+//  AudioRecordingService.swift
 //  MetroJuicePaak
 //
-//  Created by proglab on 3/4/26.
+//  Created by Noah Ang Shi Hern on 3/4/26.
 //
 
 import Foundation

@@ -59,8 +59,11 @@ struct SamplerView: View {
                         : nil
                     )
                 }
+                .padding()
             }
             .padding()
+            .navigationTitle("MetroJuicePaak")
+            .navigationBarTitleDisplayMode(.inline)
         }
         .padding()
         

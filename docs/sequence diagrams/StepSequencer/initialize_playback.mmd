@@ -1,0 +1,53 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as StepSequencerView
+    participant VM as StepSequencerViewModel
+    participant Engine as MusicEngine
+    participant Thread as Scheduler Thread
+    participant AS as AudioService
+
+    User->>View: Taps Play Button
+    View->>VM: togglePlayback()
+    activate VM
+    
+    VM->>VM: isPlaying = true
+    
+    %% Publish initial state
+    VM->>VM: publishSnapshot()
+    VM->>Engine: apply(snapshot: SequencerSnapshot)
+    
+    %% Ignite the engine
+    VM->>Engine: startSequencer()
+    activate Engine
+    
+    %% Kick off the background loop
+    Engine->>Thread: Start lookahead loop
+    
+    Engine-->>VM: (Sequencer Running)
+    deactivate Engine
+    deactivate VM
+    
+    %% The Continuous Scheduling Loop
+    rect rgb(30, 40, 50)
+        note right of Thread: BACKGROUND LOOKAHEAD LOOP
+        loop Every interval (e.g., 50ms)
+            Thread->>Engine: Read latest snapshot (Lock-Free)
+            note right of Thread: Snapshot contains `bpm` and `tracks` dictionary
+            
+            loop For each track in snapshot.tracks
+                alt If track.sample is NOT nil
+                    Thread->>Thread: Find active steps within the next 100ms window
+                    
+                    loop For each active step
+                        Thread->>Thread: Convert stepIndex & snapshot.bpm into AVAudioTime
+                        Thread->>AS: scheduleAt(sample: AudioSample, time: AVAudioTime)
+                        note right of AS: AudioService safely queues the sample on the hardware thread
+                    end
+                    
+                else If track.sample IS nil
+                    note right of Thread: Skip track (No audio payload to schedule)
+                end
+            end
+        end
+    end

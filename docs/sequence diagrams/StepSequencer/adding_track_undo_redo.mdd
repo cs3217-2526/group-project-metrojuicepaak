@@ -1,0 +1,58 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as StepSequencerView
+    participant VM as StepSequencerViewModel
+    participant URM as UndoRedoManager
+    participant Cmd as AddTrackCommand
+    participant Engine as MusicEngine
+
+    rect rgb(30, 40, 50)
+        note right of User: UNDO ACTION (Removes the Track)
+        User->>View: Taps Undo Button
+        View->>VM: undo()
+        activate VM
+        VM->>URM: undo()
+        activate URM
+        
+        URM->>URM: pop from undoStack
+        URM->>Cmd: undo()
+        activate Cmd
+        
+        note right of Cmd: Command reverses the creation
+        Cmd->>VM: removeTrack(at: trackId)
+        
+        VM->>VM: Remove track from model dictionary
+        VM->>VM: publishSnapshot()
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+        
+        URM->>URM: push to redoStack
+        deactivate Cmd
+        deactivate URM
+        deactivate VM
+    end
+    
+    rect rgb(40, 50, 40)
+        note right of User: REDO ACTION (Re-adds the exact Track)
+        User->>View: Taps Redo Button
+        View->>VM: redo()
+        activate VM
+        VM->>URM: redo()
+        activate URM
+        
+        URM->>URM: pop from redoStack
+        URM->>Cmd: execute()
+        activate Cmd
+        
+        note right of Cmd: Restores the cached track to preserve UUID
+        Cmd->>VM: addTrack(trackBackup)
+        
+        VM->>VM: Insert track back into dictionary
+        VM->>VM: publishSnapshot()
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+        
+        URM->>URM: push to undoStack
+        deactivate Cmd
+        deactivate URM
+        deactivate VM
+    end

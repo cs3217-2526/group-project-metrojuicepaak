@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as StepSequencerView
+    participant VM as StepSequencerViewModel
+    participant URM as UndoRedoManager
+    participant Cmd as ToggleStepCommand
+    participant Engine as MusicEngine
+
+    User->>View: Taps StepButton
+    View->>VM: toggleStep(trackId, stepIndex)
+    activate VM
+    
+    %% Command Creation
+    VM->>Cmd: init(trackId, stepIndex, viewModel)
+    VM->>URM: execute(command)
+    activate URM
+    
+    %% Command Execution
+    URM->>Cmd: execute()
+    activate Cmd
+    Cmd->>VM: mutateStep(trackId, stepIndex)
+    
+    %% State Mutation & Snapshot Generation
+    VM->>VM: Toggle boolean in StepSequencerModel
+    VM->>VM: publishSnapshot()
+    note right of VM: Creates immutable SequencerSnapshot
+    
+    %% The Bridge
+    VM->>Engine: apply(snapshot: SequencerSnapshot)
+    note right of Engine: Engine performs atomic swap of latestSnapshot (Lock-Free)
+    
+    deactivate Cmd
+    deactivate URM
+    deactivate VM

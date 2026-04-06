@@ -9,7 +9,7 @@ import Foundation
 
 struct SequencerTrack: Identifiable, Codable {
     let id: UUID
-    let padID: UUID
+    var padID: UUID
     
     var steps: [Bool]
     
