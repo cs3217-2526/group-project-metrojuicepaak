@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor User
+    participant UI as WaveformEditorView
+    participant SWVM as SamplerWaveformEditorViewModel
+    participant PS as AudioPlaybackService
+    
+    %% The Drag Action
+    User->>UI: Drags Left Trim Handle
+    UI->>SWVM: Update tempStartRatio (e.g., 0.25)
+    Note over SWVM: Master clipNode.sample remains UNTOUCHED
+    
+    %% The Preview Action
+    User->>UI: Press "Play Preview"
+    UI->>SWVM: togglePreview()
+    
+    Note over SWVM: Create temporary struct copy:<br/>var previewSample = clipNode.sample
+    
+    SWVM->>SWVM: try? previewSample.setStartTrimRatio(tempStartRatio)
+    SWVM->>SWVM: try? previewSample.setEndTrimRatio(tempEndRatio)
+    
+    Note over SWVM: Pass the modified snapshot to the engine
+    SWVM->>PS: play(previewSample, volume: 1.0, pan: 0.0)
+    PS-->>User: Plays trimmed audio buffer safely!

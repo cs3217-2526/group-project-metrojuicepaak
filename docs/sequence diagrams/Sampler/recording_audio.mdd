@@ -1,0 +1,51 @@
+sequenceDiagram
+    actor User
+    participant UI as SamplerPadButton
+    participant SVM as SamplerViewModel
+    participant RS as AudioRecordingService
+    participant Conductor as AudioSampleRepoVM
+    participant Repo as AudioSampleRepository
+
+    %% Phase 1: The Press (Touch Down)
+    User->>UI: Touch Down (Press & Hold)
+    UI->>SVM: handlePadPressed(padIndex)
+    
+    Note over SVM: Check: Pad is empty & isEditMode == false
+    
+    SVM->>SVM: Generate temp URL
+    SVM->>RS: startRecording(url: tempURL)
+    RS-->>SVM: return true (started)
+    
+    Note over SVM: Lock microphone:<br/>recordingPadIndex = padIndex
+
+    %% Phase 2: The Release (Touch Up)
+    User->>UI: Touch Up (Release)
+    UI->>SVM: handlePadReleased(padIndex)
+    
+    Note over SVM: Verify recordingPadIndex == padIndex
+    
+    SVM->>RS: stopRecording()
+    RS-->>SVM: return RecordingResult (duration, url)
+    
+    Note over SVM: Unlock microphone:<br/>recordingPadIndex = nil
+
+    %% Phase 3: The Duration Filter & Save Logic
+    alt result.duration < 0.5s
+        Note over SVM: Duration Filter Failed!
+        SVM->>SVM: Discard recording
+        Note right of SVM: (Optional: Delete temp file)
+        
+    else result.duration >= 0.5s
+        Note over SVM: Duration Filter Passed!
+        
+        SVM->>Conductor: addNewRecording(result: validResult)
+        Conductor->>Repo: addSample(from: result)
+        Repo-->>Conductor: return AudioSample (Pure Data)
+        
+        Note over Conductor: Cache flyweight wrapper
+        Conductor-->>SVM: return AudioClipViewModel
+        
+        SVM->>SVM: pads[padIndex] = newClipNode
+        SVM-->>UI: @Observable State Update
+        UI->>UI: .task fetches Geometry width<br/>& draws Waveform!
+    end

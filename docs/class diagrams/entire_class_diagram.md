@@ -1,7 +1,9 @@
+```mermaid
 ---
 config:
   layout: elk
 ---
+
 classDiagram
     direction BT
     
@@ -324,3 +326,4 @@ classDiagram
     
     SamplerPadView ..> SampleThumbnailView : "Passes Data"
     StepSequencerView ..> SampleThumbnailView : "Passes Data"
+```

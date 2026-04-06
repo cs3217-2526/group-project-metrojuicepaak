@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor User
+    participant UI as SamplerPadButton
+    participant SVM as SamplerViewModel
+    participant MainView as SamplerView
+    participant Picker as SamplePickerView
+    participant Conductor as AudioSampleRepoVM
+    
+    User->>UI: Tap Empty Pad (Edit Mode = ON)
+    UI->>SVM: handlePadPressed(padIndex)
+    
+    SVM->>SVM: padToAssign = padIndex
+    SVM-->>MainView: @Observable State Update
+    
+    %% The Lookup Step is now mapped!
+    MainView->>Picker: Present SamplePickerView .sheet
+    Picker->>Conductor: Read allClipNodes property
+    Conductor-->>Picker: Returns [AudioClipViewModel] (Sorted)
+    Picker->>Picker: Render UI List
+    
+    User->>Picker: Selects an Audio Node (e.g., "Huge Snare")
+    
+    Picker->>SVM: assignClipNode(selectedNode, toPad: padIndex)
+    SVM->>SVM: pads[padIndex] = selectedNode
+    SVM-->>MainView: @Observable State Update
+    
+    Picker-->>MainView: Automatically Dismiss Sheet

@@ -29,25 +29,23 @@ sequenceDiagram
     deactivate VM
     
     %% The Continuous Scheduling Loop
-    rect rgb(30, 40, 50)
-        note right of Thread: BACKGROUND LOOKAHEAD LOOP
-        loop Every interval (e.g., 50ms)
-            Thread->>Engine: Read latest snapshot (Lock-Free)
-            note right of Thread: Snapshot contains `bpm` and `tracks` dictionary
-            
-            loop For each track in snapshot.tracks
-                alt If track.sample is NOT nil
-                    Thread->>Thread: Find active steps within the next 100ms window
-                    
-                    loop For each active step
-                        Thread->>Thread: Convert stepIndex & snapshot.bpm into AVAudioTime
-                        Thread->>AS: scheduleAt(sample: AudioSample, time: AVAudioTime)
-                        note right of AS: AudioService safely queues the sample on the hardware thread
-                    end
-                    
-                else If track.sample IS nil
-                    note right of Thread: Skip track (No audio payload to schedule)
+    note right of Thread: BACKGROUND LOOKAHEAD LOOP
+    loop Every interval (e.g., 50ms)
+        Thread->>Engine: Read latest snapshot (Lock-Free)
+        note right of Thread: Snapshot contains `bpm` and `tracks` dictionary
+        
+        loop For each track in snapshot.tracks
+            alt If track.sample is NOT nil
+                Thread->>Thread: Find active steps within the next 100ms window
+                
+                loop For each active step
+                    Thread->>Thread: Convert stepIndex & snapshot.bpm into AVAudioTime
+                    Thread->>AS: scheduleAt(sample: AudioSample, time: AVAudioTime)
+                    note right of AS: AudioService safely queues the sample on the hardware thread
                 end
+                
+            else If track.sample IS nil
+                note right of Thread: Skip track (No audio payload to schedule)
             end
         end
     end
