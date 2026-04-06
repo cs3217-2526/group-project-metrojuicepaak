@@ -29,16 +29,31 @@ struct MetroJuicePaakApp: App {
         }
     }
     
+    @MainActor
     private func initializeAudio() async {
         do {
-            let audioService = try await AudioService()
-            let viewModel = SamplerViewModel(audioService: audioService)
-            samplerViewModel = viewModel
+            // Instantiate the Mocks!
+            let waveformGenerator: WaveformGenerationService = MockWaveformGenerator()
+            let playbackService: AudioPlaybackService = MockAudioPlaybackService()
+            let recordingService: AudioRecordingService = MockAudioRecordingService()
+            
+            // Pass them into the Conductor and Sampler exactly as before
+            let audioSampleRepoVM = AudioSampleRepositoryViewModel(generator: waveformGenerator)
+            
+            let viewModel = SamplerViewModel(
+                audioSampleVM: audioSampleRepoVM,
+                playbackService: playbackService,
+                recordingService: recordingService
+            )
+            
+            self.samplerViewModel = viewModel
+            
         } catch {
-            initializationError = error
+            self.initializationError = error
         }
     }
 }
+
 // Simple error view to display initialization errors
 struct ErrorView: View {
     let error: Error
@@ -58,7 +73,8 @@ struct ErrorView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             
-            if (error as? AudioServiceError) == .recordPermissionDenied {
+            // Optional cast might require your specific Error enum type here
+            if error.localizedDescription.contains("Permission") {
                 Text("Please enable microphone access in Settings")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -68,4 +84,3 @@ struct ErrorView: View {
         .padding()
     }
 }
-

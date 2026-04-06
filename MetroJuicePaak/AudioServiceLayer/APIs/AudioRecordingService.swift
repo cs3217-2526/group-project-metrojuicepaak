@@ -54,7 +54,9 @@ protocol AudioRecordingService {
     /// - Parameter settings: Optional recording settings (defaults to .default if nil)
     /// - Throws: If recording permission is denied or audio session fails
     /// - Returns: true if recording started successfully
-    func startRecording(settings: RecordingSettings?) async throws -> Bool
+    func startRecording(settings: RecordingSettings?) async throws -> Bool // not sure if this should also take in a url
+    
+    func startRecording(url: URL) async throws -> Bool //temp declaration to test out url-based recording
     
     /// Stops the current recording session
     /// - Returns: RecordingResult containing the file URL and duration, or nil if no recording was active
@@ -66,19 +68,3 @@ protocol AudioRecordingService {
     /// Current recording duration (updates in real-time)
     var recordingDuration: TimeInterval { get }
 }
-
-
-/// Result of a recording session
-struct RecordingResult {
-    /// Absolute URL to the recorded file (AudioService creates this)
-    let url: URL
-    
-    /// Duration of the recording in seconds
-    let duration: TimeInterval
-    
-    /// Relative filename for storage (extracted from URL)
-    var filename: String {
-        url.lastPathComponent
-    }
-}
-
