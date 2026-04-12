@@ -242,7 +242,7 @@ class AudioSample: NamedAudioSample, PlayableAudioSample, EditableAudioSample, E
     /// Exposed to UI consumers via ``NamedAudioSample`` so that systems which
     /// only need to play or process audio cannot accidentally couple to
     /// display metadata.
-    let name: String
+    var name: String
     
     /// Linear playback gain. `1.0` represents unity gain.
     var volume: Double
