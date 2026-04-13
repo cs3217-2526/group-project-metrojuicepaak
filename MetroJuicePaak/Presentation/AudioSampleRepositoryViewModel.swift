@@ -30,7 +30,7 @@ final class AudioSampleRepositoryViewModel {
     private(set) var repository: AudioSampleRepository
 
     /// Flyweight cache — at most one AudioClipViewModel per UUID in the pool.
-    private var activeClipNodes: [UUID: AudioClipViewModel] = [:]
+    private var activeAudioSamples: [ObjectIdentifier: AudioSample] = [:]
 
     private let generator: any WaveformGenerationService
 
@@ -49,8 +49,8 @@ final class AudioSampleRepositoryViewModel {
 
     /// All live clip nodes, sorted by sample name.
     /// This is the list the SamplePickerView displays.
-    var allClipNodes: [AudioClipViewModel] {
-        activeClipNodes.values.sorted { $0.sample.name.localizedStandardCompare($1.sample.name) == .orderedAscending }
+    var allClipNodes: [NamedAudioSample & WaveformSource] {
+        repository.allSamples.sorted(by: \.name)
     }
 
     // ─────────────────────────────────────────

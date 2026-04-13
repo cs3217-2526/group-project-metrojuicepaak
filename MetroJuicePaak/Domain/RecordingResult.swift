@@ -14,9 +14,4 @@ struct RecordingResult {
     
     /// Duration of the recording in seconds
     let duration: TimeInterval
-    
-    /// Relative filename for storage (extracted from URL)
-    var filename: String {
-        url.lastPathComponent
-    }
 }

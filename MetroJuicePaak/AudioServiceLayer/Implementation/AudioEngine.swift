@@ -2,116 +2,128 @@
 //  AudioEngine.swift
 //  MetroJuicePaak
 //
-//  Created by Noah Ang Shi Hern on 23/3/26.
-//
-
 
 import AVFoundation
+import os
 
 final class AudioEngine {
-    private let audioEngine = AVAudioEngine()
-    private var playerNodes: [String: AVAudioPlayerNode] = [:]
-    private var audioFiles: [String: AVAudioFile] = [:]
-    private var isEngineRunning = false
 
-    init() {
-        
+    private let avEngine = AVAudioEngine()
+    private var voicePools: [ObjectIdentifier: VoicePool] = [:]
+    private let registry: EffectRegistry = StubEffectRegistry()
+    private let logger = Logger(subsystem: "MetroJuicePaak", category: "AudioEngine")
+
+    // MARK: - Voice Pool
+
+    private final class VoicePool {
+        let voices: [SampleVoice]
+        var nextVoiceIndex = 0
+
+        init(voices: [SampleVoice]) {
+            self.voices = voices
+        }
+
+        /// Returns the next voice for overlapping playback using round-robin selection.
+        /// If the selected voice is already playing it will be stopped by SampleVoice.start()
+        /// before rescheduling — this is the voice-stealing behaviour.
+        func nextVoice() -> SampleVoice {
+            let voice = voices[nextVoiceIndex]
+            nextVoiceIndex = (nextVoiceIndex + 1) % voices.count
+            return voice
+        }
     }
 
-    func loadAudioFile(id: String, url: URL) throws {
-        guard audioFiles[id] == nil else {
-            print("⚠️ Audio file already loaded for id: \(id)")
-            return
-        }
-        
-        // Check if file exists
-        let fileManager = FileManager.default
-        guard fileManager.fileExists(atPath: url.path) else {
-            print("❌ File does not exist at path: \(url.path)")
-            throw NSError(domain: "AudioEngine", code: 1, userInfo: [NSLocalizedDescriptionKey: "File not found"])
-        }
-        
-        // Check file size
-        if let attributes = try? fileManager.attributesOfItem(atPath: url.path),
-           let fileSize = attributes[.size] as? Int64 {
-            print("📁 File size: \(fileSize) bytes at \(url.path)")
-            if fileSize == 0 {
-                print("⚠️ Warning: File is empty!")
-            }
-        }
-        
-        let file = try AVAudioFile(forReading: url)
-        print("🎵 Audio file format: \(file.fileFormat)")
-        print("🎵 Audio file length: \(file.length) frames")
-        print("🎵 Audio file duration: \(Double(file.length) / file.fileFormat.sampleRate) seconds")
-        
-        let player = AVAudioPlayerNode()
+    // MARK: - Private Helpers
 
-        audioEngine.attach(player)
-        audioEngine.connect(player, to: audioEngine.mainMixerNode, format: file.processingFormat)
-
-        playerNodes[id] = player
-        audioFiles[id] = file
-        
-        print("✅ Loaded audio file: \(id) from \(url.lastPathComponent)")
+    /// Derives a stable identity key from a PlayableAudioSample.
+    /// Assumes all conformers are reference types (classes), which is true for AudioSample.
+    private func poolKey(for sample: PlayableAudioSample) -> ObjectIdentifier {
+        ObjectIdentifier(sample as AnyObject)
     }
 
-    func playAudioFile(id: String, volume: Float = 1.0, pan: Float = 0.0) {
-        guard
-            let player = playerNodes[id],
-            let file = audioFiles[id]
-        else {
-            print("❌ Cannot play: player or file not found for id: \(id)")
-            print("   Available IDs: \(playerNodes.keys.joined(separator: ", "))")
+    private func applyMixerProperties(_ sample: PlayableAudioSample, to voice: SampleVoice) {
+        voice.playerNode.volume = Float(sample.volume)
+        // PlayableAudioSample.pan is [0, 1] (0.5 = centre).
+        // AVAudioPlayerNode.pan expects [-1, 1].
+        voice.playerNode.pan = Float(sample.pan * 2.0 - 1.0)
+    }
+
+    // MARK: - Load / Unload
+
+    func load(sample: PlayableAudioSample, polyphony: Int) throws {
+        let key = poolKey(for: sample)
+        guard voicePools[key] == nil else {
+            logger.debug("Sample '\(sample.url.lastPathComponent)' already loaded, skipping")
             return
         }
 
-//        // Stop if currently playing to allow re-triggering
-//        if player.isPlaying {
-//            player.stop()
-//        }
-
-        player.volume = volume
-        player.pan = pan
-
-        // Start engine if needed
-        if !isEngineRunning {
-            do {
-                try audioEngine.start()
-                isEngineRunning = true
-                print("✅ Audio engine started")
-            } catch {
-                print("❌ Failed to start audio engine: \(error)")
-                return
-            }
+        let voiceCount = max(1, polyphony)
+        var voices: [SampleVoice] = []
+        for _ in 0..<voiceCount {
+            let voice = SampleVoice(engine: avEngine, registry: registry)
+            try voice.loadFile(from: sample.url)
+            voices.append(voice)
         }
-        
-        print("🔊 Engine running: \(audioEngine.isRunning)")
-        print("🔊 Main mixer volume: \(audioEngine.mainMixerNode.volume)")
-        print("🔊 Player volume: \(player.volume), pan: \(player.pan)")
 
-        // Schedule and play
-        player.scheduleFile(file, at: nil) {
-            print("🎵 Finished playing: \(id)")
+        voicePools[key] = VoicePool(voices: voices)
+        logger.info("Loaded '\(sample.url.lastPathComponent)' with polyphony \(voiceCount)")
+    }
+
+    func unload(_ sample: PlayableAudioSample) {
+        let key = poolKey(for: sample)
+        guard let pool = voicePools.removeValue(forKey: key) else { return }
+        pool.voices.forEach { $0.detach() }
+        logger.info("Unloaded '\(sample.url.lastPathComponent)'")
+    }
+
+    // MARK: - Playback
+
+    /// Retrigger: stops all voices for this sample and restarts from voice 0.
+    func play(_ sample: PlayableAudioSample) {
+        let key = poolKey(for: sample)
+        guard let pool = voicePools[key] else {
+            logger.warning("play() called on unloaded sample '\(sample.url.lastPathComponent)'")
+            return
         }
-        player.play()
-        
-        print("▶️ Playing audio: \(id), isPlaying: \(player.isPlaying)")
+        pool.voices.forEach { $0.stop() }
+        pool.nextVoiceIndex = 0
+        let voice = pool.voices[0]
+        applyMixerProperties(sample, to: voice)
+        voice.start()
     }
 
-    func stopPlayingFile(id: String) {
-        playerNodes[id]?.stop()
-        print("⏹️ Stopped audio: \(id)")
+    /// Overlapping playback with round-robin voice stealing.
+    /// When all polyphony slots are busy the oldest voice is stopped and reused.
+    func playOverlapping(_ sample: PlayableAudioSample) {
+        let key = poolKey(for: sample)
+        guard let pool = voicePools[key] else {
+            logger.warning("playOverlapping() called on unloaded sample '\(sample.url.lastPathComponent)'")
+            return
+        }
+        let voice = pool.nextVoice()
+        applyMixerProperties(sample, to: voice)
+        // SampleVoice.start() calls playerNode.stop() before scheduling,
+        // so this naturally steals the voice if it is already playing.
+        voice.start()
     }
 
-    func stopPlayingAllFiles() {
-        playerNodes.values.forEach { $0.stop() }
-        print("⏹️ Stopped all audio")
+    func stop(_ sample: PlayableAudioSample) {
+        voicePools[poolKey(for: sample)]?.voices.forEach { $0.stop() }
     }
-    
-    func cleanUp() {
-        audioEngine.stop()
-        isEngineRunning = false
-        print("🧹 Audio engine cleaned up")
+
+    func stopAll() {
+        voicePools.values.forEach { pool in
+            pool.voices.forEach { $0.stop() }
+        }
+    }
+
+    // MARK: - State Queries
+
+    func isLoaded(_ sample: PlayableAudioSample) -> Bool {
+        voicePools[poolKey(for: sample)] != nil
+    }
+
+    func isPlaying(_ sample: PlayableAudioSample) -> Bool {
+        voicePools[poolKey(for: sample)]?.voices.contains { $0.playerNode.isPlaying } ?? false
     }
 }
