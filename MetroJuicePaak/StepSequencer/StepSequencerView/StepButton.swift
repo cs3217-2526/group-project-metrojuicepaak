@@ -10,20 +10,27 @@ import SwiftUI
 struct StepButton: View {
     let isActive: Bool
     let isCurrentStep: Bool
-    let width: CGFloat
-    let height: CGFloat
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            RoundedRectangle(cornerRadius: width > 10 ? 4 : 1)
-                .fill(isActive ? Color.cyan : Color(white: 0.15))
-                .frame(width: width, height: height)
+            RoundedRectangle(cornerRadius: 6)
+                .fill(fillColor)
                 .overlay(
-                    RoundedRectangle(cornerRadius: width > 10 ? 4 : 1)
-                        .stroke(isCurrentStep ? Color.white.opacity(0.8) : Color.clear, lineWidth: width > 15 ? 2 : 1)
+                    RoundedRectangle(cornerRadius: 6)
+                        // Show a white border if the playhead is currently on this step
+                        .stroke(isCurrentStep ? Color.white : Color.clear, lineWidth: 2)
                 )
         }
-        .buttonStyle(.plain)
+        .frame(width: 40, height: 40)
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var fillColor: Color {
+        if isActive {
+            return .cyan
+        } else {
+            return Color.gray.opacity(0.3)
+        }
     }
 }

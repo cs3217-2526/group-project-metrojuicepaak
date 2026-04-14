@@ -77,6 +77,10 @@ class AudioService: AudioServiceProtocol {
     func playOverlapping(_ sample: PlayableAudioSample) async {
         audioEngine.playOverlapping(sample)
     }
+    
+    func scheduleAt(sample: PlayableAudioSample, time: TimeInterval) {
+        audioEngine.scheduleAt(sample: sample, time: time)
+    }
 
     func stop(_ sample: PlayableAudioSample) async {
         audioEngine.stop(sample)

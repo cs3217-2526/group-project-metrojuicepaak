@@ -6,16 +6,21 @@
 //
 
 import Foundation
+import Observation
 
-struct SequencerTrack: Identifiable, Codable {
+@Observable
+class SequencerTrack: Identifiable {
+    // A stable ID so SwiftUI's ForEach can track this specific row
     let id: UUID
-    var padID: UUID
+    
+    // Links directly to the new AudioSampleRepository using ObjectIdentifier
+    var sampleID: ObjectIdentifier?
     
     var steps: [Bool]
     
-    init(id: UUID = UUID(), padID: UUID, numSteps: Int = 16) {
+    init(id: UUID = UUID(), sampleID: ObjectIdentifier? = nil, defaultStepCount: Int = 16) {
         self.id = id
-        self.padID = padID
-        self.steps = Array(repeating: false, count: numSteps)
+        self.sampleID = sampleID
+        self.steps = Array(repeating: false, count: defaultStepCount)
     }
 }

@@ -45,6 +45,18 @@ protocol AudioPlaybackService {
     /// - Parameter sample: The AudioSample to play (must be loaded first)
     func playOverlapping(_ sample: PlayableAudioSample) async
     
+    /// Schedules an audio sample to play at a precise hardware timestamp.
+    /// Used by MusicEngine for sample-accurate step sequencer playback.
+    ///
+    /// - Parameters:
+    ///   - sample: The audio sample to play
+    ///   - time: The exact TimeInterval when playback should start
+    ///
+    /// - Note: This method is designed for the lookahead scheduler.
+    ///   The audio engine will hold the scheduled buffer and play it
+    ///   at the exact microsecond specified, preventing timing drift.
+    func scheduleAt(sample: PlayableAudioSample, time: TimeInterval)
+    
     /// Stops playback of a specific sample
     /// - Parameter sample: The AudioSample to stop
     func stop(_ sample: PlayableAudioSample) async

@@ -5,24 +5,24 @@
 //  Created by Edwin Wong on 27/03/2026.
 //
 
+import Foundation
+
 class ToggleStepCommand: Command {
-    private let trackIndex: Int
+    private let trackId: UUID
     private let stepIndex: Int
     private weak var viewModel: StepSequencerViewModel?
     
-    init(trackIndex: Int, stepIndex: Int, viewModel: StepSequencerViewModel) {
-        self.trackIndex = trackIndex
+    init(trackId: UUID, stepIndex: Int, viewModel: StepSequencerViewModel) {
+        self.trackId = trackId
         self.stepIndex = stepIndex
         self.viewModel = viewModel
-        // We use a keypath or direct method call. A direct closure/method approach is simpler here.
     }
     
     func execute() {
-        viewModel?.mutateStep(trackIndex: trackIndex, stepIndex: stepIndex)
+        viewModel?.mutateStep(trackId: trackId, stepIndex: stepIndex)
     }
     
     func undo() {
-        // Toggling again reverses the state
-        viewModel?.mutateStep(trackIndex: trackIndex, stepIndex: stepIndex)
+        viewModel?.mutateStep(trackId: trackId, stepIndex: stepIndex)
     }
 }

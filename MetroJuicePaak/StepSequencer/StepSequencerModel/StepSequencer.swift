@@ -7,13 +7,15 @@
 
 import Foundation
 
-struct StepSequencerModel: Codable {
+struct StepSequencerModel {
     var tracks: [SequencerTrack]
     
-    var sequenceLength: Int
+    var stepCount: Int
+    var bpm: Double
     
-    init(tracks: [SequencerTrack] = [], sequenceLength: Int = 16) {
+    init(tracks: [SequencerTrack] = [], stepCount: Int = 16, bpm: Double = 120.0) {
         self.tracks = tracks
-        self.sequenceLength = sequenceLength
+        self.stepCount = stepCount
+        self.bpm = bpm
     }
 }

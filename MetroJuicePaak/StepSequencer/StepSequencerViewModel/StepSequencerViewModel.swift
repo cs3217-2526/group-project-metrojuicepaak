@@ -10,191 +10,132 @@ import Observation
 
 @Observable
 class StepSequencerViewModel {
-    private(set) var sequencerModel: StepSequencerModel
+    // MARK: - State
+    var sequencerModel: StepSequencerModel
     
-    let pads: [SamplerPad]
-    private let audioService: AudioService
+    // 🟢 NEW: Directly injecting the strictly-scoped readable protocol
+    let repository: ReadableAudioSampleRepository
+    private let musicEngine: MusicEngine
     private let undoRedoManager = UndoRedoManager()
     
     var isPlaying: Bool = false
     var currentStep: Int = 0
-    var bpm: Double = 120.0
-    private var playbackTask: Task<Void, Never>?
     
-    let availableLengths: [Int] = [6, 8, 12, 16, 24, 32]
-    
-    var canUndo: Bool { undoRedoManager.canUndo }
-    var canRedo: Bool { undoRedoManager.canRedo }
-    
-    init(pads: [SamplerPad], audioService: AudioService) {
-        self.pads = pads
-        self.audioService = audioService
-        
-        let defaultLength = 16
-        self.sequencerModel = StepSequencerModel(tracks: [], sequenceLength: defaultLength)
+    // MARK: - Initialization
+    init(repository: ReadableAudioSampleRepository, musicEngine: MusicEngine) {
+        self.repository = repository
+        self.musicEngine = musicEngine
+        self.sequencerModel = StepSequencerModel()
     }
     
-    // MARK: - Sequence Length Management
+    // MARK: - The Audio Engine Bridge (Snapshot)
     
-    func changeSequenceLength(to newLength: Int) {
-        let currentLength = sequencerModel.sequenceLength
-        guard newLength != currentLength else { return }
+    private func publishSnapshot() {
+        var engineTracks: [UUID: EngineTrack] = [:]
         
-        // Resize the steps array in every existing track first
-        for i in 0..<sequencerModel.tracks.count {
-            if newLength > currentLength {
-                // Pad with false (empty steps)
-                let padding = Array(repeating: false, count: newLength - currentLength)
-                sequencerModel.tracks[i].steps.append(contentsOf: padding)
-            } else {
-                // Truncate to the new shorter length
-                sequencerModel.tracks[i].steps = Array(sequencerModel.tracks[i].steps.prefix(newLength))
+        for track in sequencerModel.tracks {
+            var pureSample: AudioSample? = nil
+            
+            // 🟢 NEW: Query the injected protocol safely using ObjectIdentifier
+            if let sampleID = track.sampleID,
+               let playable = repository.getPlayableSample(for: sampleID) as? AudioSample {
+                pureSample = playable
             }
+            
+            // Package the frozen values for the background thread
+            engineTracks[track.id] = EngineTrack(sample: pureSample, steps: track.steps)
         }
         
-        // Update the model's sequence length so the UI updates
-        sequencerModel.sequenceLength = newLength
-        
-        // Prevent crashes if the playhead was out of the new bounds
-        if currentStep >= newLength {
-            currentStep = 0
+        let snapshot = SequencerSnapshot(
+            tracks: engineTracks,
+            stepCount: sequencerModel.stepCount,
+            bpm: sequencerModel.bpm
+        )
+        musicEngine.apply(snapshot: snapshot)
+    }
+    
+    // MARK: - Playback Controls
+    
+    func togglePlayback() {
+        isPlaying.toggle()
+        if isPlaying {
+            publishSnapshot() // Ensure engine has latest data before starting
+            musicEngine.startSequencer()
+        } else {
+            musicEngine.stopSequencer()
         }
     }
     
-    // MARK: - Pad Availability Logic
+    // MARK: - Target Mutations (Called by Commands)
     
-    var availablePadsToAdd: [SamplerPad] {
-        let usedPadIDs = Set(sequencerModel.tracks.map { $0.padID })
-        return pads.filter { !usedPadIDs.contains($0.id) }
+    internal func mutateStep(trackId: UUID, stepIndex: Int) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == trackId }) else { return }
+        sequencerModel.tracks[index].steps[stepIndex].toggle()
+        publishSnapshot()
     }
     
-    var canAddMoreTracks: Bool {
-        sequencerModel.tracks.count < 16 && !availablePadsToAdd.isEmpty
+    internal func insertTrack(_ track: SequencerTrack, at index: Int) {
+        // Safe array insertion
+        let safeIndex = min(max(index, 0), sequencerModel.tracks.count)
+        sequencerModel.tracks.insert(track, at: safeIndex)
+        publishSnapshot()
     }
     
-    // MARK: - Track Management
-    
-    func addTrack(for padID: UUID) {
-        guard !sequencerModel.tracks.contains(where: { $0.padID == padID }),
-              sequencerModel.tracks.count < 16 else { return }
-        
-        let newTrack = SequencerTrack(padID: padID, numSteps: sequencerModel.sequenceLength)
-        sequencerModel.tracks.append(newTrack)
-    }
-    
-    func removeTrack(at index: Int) {
-        guard index < sequencerModel.tracks.count else { return }
+    internal func removeTrack(id: UUID) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == id }) else { return }
         sequencerModel.tracks.remove(at: index)
+        publishSnapshot()
     }
     
-    func updateTrackPad(trackIndex: Int, newPadID: UUID) {
-        guard trackIndex < sequencerModel.tracks.count else { return }
-        guard !sequencerModel.tracks.contains(where: { $0.padID == newPadID }) else { return }
-        
-        sequencerModel.tracks[trackIndex].padID = newPadID
+    internal func assignSampleToTrack(trackId: UUID, sampleID: ObjectIdentifier) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == trackId }) else { return }
+        sequencerModel.tracks[index].sampleID = sampleID
+        publishSnapshot()
     }
     
-    func padNumber(for padID: UUID) -> Int {
-        guard let index = pads.firstIndex(where: { $0.id == padID }) else { return 0 }
-        return index + 1
+    internal func removeSampleFromTrack(trackId: UUID) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == trackId }) else { return }
+        sequencerModel.tracks[index].sampleID = nil
+        publishSnapshot()
     }
     
-    // MARK: - Editing via Command Pattern
+    // MARK: - Command Triggers (Called by the UI)
     
-    func toggleStep(trackIndex: Int, stepIndex: Int) {
-        let command = ToggleStepCommand(trackIndex: trackIndex, stepIndex: stepIndex, viewModel: self)
+    func executeToggleStep(trackId: UUID, stepIndex: Int) {
+        let command = ToggleStepCommand(trackId: trackId, stepIndex: stepIndex, viewModel: self)
         undoRedoManager.execute(command)
     }
     
-    func undo() {
-        undoRedoManager.undo()
+    func executeAddTrack() {
+        let newTrack = SequencerTrack(defaultStepCount: sequencerModel.stepCount)
+        let command = AddTrackCommand(track: newTrack, viewModel: self)
+        undoRedoManager.execute(command)
     }
     
-    func redo() {
-        undoRedoManager.redo()
+    func executeRemoveTrack(trackId: UUID) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == trackId }) else { return }
+        let trackBackup = sequencerModel.tracks[index]
+        let command = DeleteTrackCommand(trackId: trackId, trackBackup: trackBackup, originalIndex: index, viewModel: self)
+        undoRedoManager.execute(command)
     }
     
-    internal func mutateStep(trackIndex: Int, stepIndex: Int) {
-        guard trackIndex < sequencerModel.tracks.count,
-              stepIndex < sequencerModel.sequenceLength else { return }
+    func executeAssignSample(trackId: UUID, sampleID: ObjectIdentifier) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == trackId }) else { return }
+        let previousSampleID = sequencerModel.tracks[index].sampleID
         
-        sequencerModel.tracks[trackIndex].steps[stepIndex].toggle()
+        let command = AddSampleCommand(trackId: trackId, newSampleID: sampleID, previousSampleID: previousSampleID, viewModel: self)
+        undoRedoManager.execute(command)
     }
     
-    func isStepActive(trackIndex: Int, stepIndex: Int) -> Bool {
-        guard trackIndex < sequencerModel.tracks.count,
-              stepIndex < sequencerModel.sequenceLength else { return false }
-        return sequencerModel.tracks[trackIndex].steps[stepIndex]
-    }
-    
-    // MARK: - Playback Engine
-    
-    func togglePlayback() {
-        if isPlaying {
-            stop()
-        } else {
-            play()
-        }
-    }
-    
-    private func play() {
-        isPlaying = true
-        currentStep = 0
+    func executeRemoveSample(trackId: UUID) {
+        guard let index = sequencerModel.tracks.firstIndex(where: { $0.id == trackId }) else { return }
+        guard let sampleIDBackup = sequencerModel.tracks[index].sampleID else { return }
         
-        playbackTask = Task {
-            while isPlaying && !Task.isCancelled {
-                await playSoundsForCurrentStep()
-                
-                // Calculate sleep time for 16th notes based on BPM
-                // 60 seconds / BPM = 1 beat (quarter note). Divide by 4 for 16th notes.
-                let secondsPerStep = (60.0 / bpm) / 4.0
-                let nanoseconds = UInt64(secondsPerStep * 1_000_000_000)
-                
-                try? await Task.sleep(nanoseconds: nanoseconds)
-                
-                if !Task.isCancelled {
-                    // Move to next step, loop back to 0 at the end
-                    currentStep = (currentStep + 1) % sequencerModel.sequenceLength
-                }
-            }
-        }
+        let command = DeleteSampleCommand(trackId: trackId, sampleIDBackup: sampleIDBackup, viewModel: self)
+        undoRedoManager.execute(command)
     }
     
-    private func stop() {
-        isPlaying = false
-        playbackTask?.cancel()
-        playbackTask = nil
-        currentStep = 0
-    }
-    
-    private func playSoundsForCurrentStep() async {
-        for (index, track) in sequencerModel.tracks.enumerated() {
-            if track.steps[currentStep] {
-                // Find the pad associated with this track
-                let pad = pads[index]
-                if pad.isSampleLoaded, let sampleID = pad.sampleID {
-                    // Trigger the audio service concurrently so multiple tracks can play at once
-                    Task {
-                        await audioService.playAudio(identifier: sampleID)
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - BPM Management
-        
-    func incrementBPM() {
-        // Cap the maximum BPM at 300
-        if bpm < 300 {
-            bpm += 1
-        }
-    }
-    
-    func decrementBPM() {
-        // Floor the minimum BPM at 40
-        if bpm > 40 {
-            bpm -= 1
-        }
-    }
+    // MARK: - Undo/Redo Pass-Through
+    func undo() { undoRedoManager.undo() }
+    func redo() { undoRedoManager.redo() }
 }
