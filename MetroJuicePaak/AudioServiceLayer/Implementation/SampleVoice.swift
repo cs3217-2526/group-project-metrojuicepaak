@@ -70,11 +70,25 @@ final class SampleVoice {
 
     /// Load the audio file and attach the player node to the engine.
     /// Called once when the voice is first constructed.
+//    func loadFile(from url: URL) throws {
+//        let file = try AVAudioFile(forReading: url)
+//        self.audioFile = file
+//        engine.attach(playerNode)
+//        self.connectionFormat = file.processingFormat
+//    }
+    /// Load the audio file and attach the player node to the engine.
+    /// Called once when the voice is first constructed.
     func loadFile(from url: URL) throws {
         let file = try AVAudioFile(forReading: url)
         self.audioFile = file
+        
+        // 1. Attach the node
         engine.attach(playerNode)
         self.connectionFormat = file.processingFormat
+        
+        // 2. THE FIX: Create a valid audio graph immediately!
+        // Connect the player directly to the main mixer so engine.start() doesn't crash.
+        engine.connect(playerNode, to: engine.mainMixerNode, format: file.processingFormat)
     }
 
     /// Build the effect chain from a descriptor and connect the graph.
@@ -150,18 +164,54 @@ final class SampleVoice {
 
     // MARK: - Playback
 
-    func start() {
+//    func start() {
+//        guard let file = audioFile else { return }
+//        // Schedule the file from the beginning. For retrigger scenarios
+//        // you'd stop the player first; for overlapping playback you'd need
+//        // a pool of player nodes (not covered here).
+//        playerNode.stop()
+//        playerNode.scheduleFile(file, at: nil, completionHandler: nil)
+//        if !engine.isRunning {
+//            try? engine.start()
+//        }
+//        playerNode.play()
+//    }
+    // MARK: - CHANGES TO NOTE:
+
+    /// Schedules and begins playback of the audio file, physically trimming the audio buffer
+    /// to respect the provided start and end ratios.
+    ///
+    /// **Architecture Update:**
+    /// Previously, `SampleVoice` scheduled the entire `AVAudioFile` blindly, which caused
+    /// playback to ignore UI-level trim edits. By accepting normalized ratios from the Engine,
+    /// this method translates abstract domain values (`0.0` to `1.0`) into physical hardware
+    /// `AVAudioFramePosition` frames.
+    ///
+    /// - Parameters:
+    ///   - startTimeRatio: The normalized start point of the trimmed region. Defaults to 0.0 (beginning).
+    ///   - endTimeRatio: The normalized end point of the trimmed region. Defaults to 1.0 (end).
+    /// - Note: Uses `scheduleSegment` instead of `scheduleFile` to physically crop the buffer
+    ///         before it reaches the engine. Includes a safety guard to prevent `AVAudioEngine`
+    ///         from crashing if the trimmed frame count resolves to 0.
+    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
         guard let file = audioFile else { return }
-        // Schedule the file from the beginning. For retrigger scenarios
-        // you'd stop the player first; for overlapping playback you'd need
-        // a pool of player nodes (not covered here).
         playerNode.stop()
-        playerNode.scheduleFile(file, at: nil, completionHandler: nil)
+        
+        let totalFrames = file.length
+        let startFrame = AVAudioFramePosition(Double(totalFrames) * startTimeRatio)
+        let frameCount = AVAudioFrameCount(Double(totalFrames) * (endTimeRatio - startTimeRatio))
+        
+        // Safety check to prevent engine crashes on zero-length frames
+        if frameCount > 0 {
+            playerNode.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil, completionHandler: nil)
+        }
+        
         if !engine.isRunning {
             try? engine.start()
         }
         playerNode.play()
     }
+    // MARK: - CHANGES TO NOTE ^ ^
 
     func stop() {
         playerNode.stop()

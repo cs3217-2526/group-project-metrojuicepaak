@@ -33,7 +33,7 @@ struct WaveformShape: Shape {
 }
 
 // 2. The View Wrapper
-struct SampleThumbnailView: View {
+struct SamplerThumbnailView: View {
     var data: WaveformData
     var strokeColor: Color = .white
     

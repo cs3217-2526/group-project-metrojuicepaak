@@ -1,200 +1,80 @@
-//import Foundation
-//import Observation
-//
-///// The central State Machine for the 4x4 Sampler Grid.
-/////
-///// This ViewModel acts as the "Brain" of the main UI. It tracks physical touch events,
-///// routes users between Play, Record, and Edit modes, and acts as the bridge
-///// between the UI and the underlying Audio Services.
-//@Observable
-//class SamplerViewModel {
-//    
-//    // MARK: - Core State
-//    
-//    /// The 16 physical pads.
-//    /// An index containing `nil` represents an empty pad.
-//    /// An index containing an `AudioClipViewModel` represents an assigned, playable sample.
-//    var pads: [AudioClipViewModel?] = Array(repeating: nil, count: 16)
-//    
-//    // MARK: - UI Mode State
-//    
-//    /// Tracks how many pads are currently being held down to play audio.
-//    var playingPadsCount: Int = 0
-//    
-//    /// Computed property indicating if any audio is actively being triggered by the user.
-//    var isPlaying: Bool { playingPadsCount > 0 }
-//    
-//    /// When true, tapping a pad opens its configuration sheet instead of triggering audio.
-//    var isEditMode: Bool = false
-//    
-//    // MARK: - Sheet Navigation State
-//    
-//    /// Holds the node the user wants to trim. Triggers the WaveformEditor sheet when not nil.
-//    var audioClipToEdit: AudioClipViewModel? = nil
-//    
-//    /// Holds the grid index the user wants to populate. Triggers the SamplePicker sheet when not nil.
-//    var padToAssign: Int? = nil
-//    
-//    // MARK: - Recording State
-//    
-//    /// Locks the microphone to a specific pad index to prevent multi-touch recording bugs.
-//    var recordingPadIndex: Int? = nil
-//    
-//    /// Computed property indicating if the microphone is currently active.
-//    var isRecording: Bool { recordingPadIndex != nil }
-//    
-//    // MARK: - Dependencies
-//    
-//    /// The Conductor. Manages the global pool of saved audio data.
-//    let audioSampleRepoVM: AudioSampleRepositoryViewModel
-//    
-//    /// The engine responsible for triggering playback.
-//    let playbackService: AudioPlaybackService
-//    
-//    /// The engine responsible for capturing microphone input.
-//    private let recordingService: AudioRecordingService
-//    
-//    // MARK: - Initialization
-//    
-//    init(audioSampleVM: AudioSampleRepositoryViewModel,
-//         playbackService: AudioPlaybackService,
-//         recordingService: AudioRecordingService) {
-//        self.audioSampleRepoVM = audioSampleVM
-//        self.playbackService = playbackService
-//        self.recordingService = recordingService
-//    }
-//    
-//    // MARK: - Pad Interactions
-//    
-//    /// Triggered the exact millisecond the user touches a pad.
-//    /// Routes the touch based on the current `isEditMode` and whether the pad is empty.
-//    func handlePadPressed(padIndex: Int) async {
-//        guard padIndex >= 0 && padIndex < 16 else { return }
-//        let padNode = pads[padIndex]
-//        
-//        // 1. Edit Mode Intercept
-//        if isEditMode {
-//            if let node = padNode {
-//                // Pad has a sample -> Open the Waveform Editor
-//                await MainActor.run { self.audioClipToEdit = node }
-//            } else {
-//                // Pad is empty -> Open the Sample Picker
-//                await MainActor.run { self.padToAssign = padIndex }
-//            }
-//            return
-//        }
-//        
-//        // 2. Playback Route (Pad is assigned)
-//        if let node = padNode {
-//            await playbackService.play(node.sample, volume: 1.0, pan: 0.0)
-//            await MainActor.run { self.playingPadsCount += 1 }
-//        }
-//        // 3. Recording Route (Pad is empty)
-//        else {
-//            // Safety: Ignore touch if another pad is already recording
-//            if isRecording { return }
-//            
-//            // Generate a secure, unique path in the OS Temp directory
-//            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".m4a")
-//            
-//            do {
-//                let started = try await recordingService.startRecording(url: tempURL)
-//                if started {
-//                    // Lock the microphone to THIS specific pad
-//                    await MainActor.run { self.recordingPadIndex = padIndex }
-//                }
-//            } catch {
-//                print("❌ Recording failed: \(error)")
-//            }
-//        }
-//    }
-//    
-//    /// Triggered the exact millisecond the user lifts their finger off a pad.
-//    /// Halts playback or validates and saves an active recording.
-//    func handlePadReleased(padIndex: Int) async {
-//        guard padIndex >= 0 && padIndex < 16 else { return }
-//        let padNode = pads[padIndex]
-//        
-//        // 1. Stop Playback Route
-//        if let node = padNode {
-//            await playbackService.stop(node.sample)
-//            await MainActor.run {
-//                // Safely decrement, clamping to 0 just in case of ghost touches
-//                self.playingPadsCount = max(0, self.playingPadsCount - 1)
-//            }
-//        }
-//        // 2. Stop Recording Route
-//        // Only process if the pad being released is the exact pad that started the recording
-//        else if recordingPadIndex == padIndex {
-//            let result = await recordingService.stopRecording()
-//            
-//            await MainActor.run {
-//                self.recordingPadIndex = nil // Always unlock the pad state
-//                
-//                if let validResult = result {
-//                    // The Duration Filter: Prevents accidental micro-taps from creating junk files.
-//                    if validResult.duration >= 0.5 {
-//                        // Hand the raw data to the Conductor, get the wrapper back, and assign it
-//                        let newClipNode = audioSampleRepoVM.addNewRecording(result: validResult)
-//                        self.pads[padIndex] = newClipNode
-//                    } else {
-//                        print("⚠️ Recording too short (\(validResult.duration)s). Discarded.")
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//    // MARK: - Arrangement Mutations
-//    
-//    /// Cleans up the grid when a sample is permanently deleted from the global pool.
-//    /// Iterates through all pads and removes the reference to allow ARC memory deallocation.
-//    @MainActor
-//    func handleSampleDeleted(id: UUID) {
-//        // 1. Tell the Conductor to delete the pure data
-//        audioSampleRepoVM.removeSample(id: id)
-//        
-//        // 2. Scrub your own UI grid of any dead references
-//        for i in 0..<16 {
-//            if pads[i]?.sample.id == id {
-//                pads[i] = nil
-//            }
-//        }
-//    }
-//    
-//    /// Connects a global pool sample to a specific pad on the grid.
-//    /// - Parameters:
-//    ///   - node: The active wrapper returned by the SamplePickerView.
-//    ///   - padIndex: The grid slot to populate.
-//    @MainActor
-//    func assignClipNode(_ node: AudioClipViewModel, toPad padIndex: Int) {
-//        self.pads[padIndex] = node
-//    }
-//}
-
 import Foundation
 import Observation
 
+/// Identifiable wrapper for triggering the Waveform Editor modal.
+struct EditContext: Identifiable {
+    let id: ObjectIdentifier
+}
+
+/// Identifiable wrapper for triggering the Sample Picker modal.
+struct PickerContext: Identifiable {
+    let id: Int
+}
+
+/// The central orchestrator for the MetroJuicePaak drum machine.
+///
+/// `SamplerViewModel` sits between the UI layer (the pad grid) and the domain/service layers.
+/// It strictly adheres to Clean Architecture by restricting its own access via `SamplerRepositoryProtocols`
+/// and by mapping physical UI slots to `ObjectIdentifier`s rather than concrete domain models.
 @Observable
 class SamplerViewModel {
     
     // MARK: - Dependencies
-    // Noah's Rule: "A ViewModel typically depends on one or two of these [protocols]."
-    // We combine the protocols we need into a clean typealias.
-    typealias SamplerRepositoryProtocols = WritableAudioSampleRepository & ReadableAudioSampleRepository & WaveformSourceAudioSampleRepository
     
-    private let repository: SamplerRepositoryProtocols
+    /// A typealias restricting this ViewModel to only the repository capabilities it strictly needs.
+    typealias SamplerRepositoryProtocols = WritableAudioSampleRepository & ReadableAudioSampleRepository & WaveformSourceAudioSampleRepository & EditableAudioSampleRepository
+    
+    let repository: SamplerRepositoryProtocols
     private let audioService: AudioServiceProtocol
     private let waveformGenerator: WaveformGenerationService
     
-    // MARK: - State
-    // Noah's Rule: "ViewModels exchange IDs, not references."
-    // We map Pad Index (0...15) to the unique memory address of the sample.
+    // MARK: - Core State
+    
+    /// The master ledger mapping a physical pad index (0-15) to a sample's unique memory address.
+    /// - Note: We do not store concrete `AudioSample` references here to prevent accidental domain mutations.
     var padAssignments: [Int: ObjectIdentifier] = [:]
     
-    // UI State for the red recording indicator
+    /// Tracks which pad is currently capturing microphone input.
+    /// Used by the UI to render recording indicators (e.g., a red highlight).
     var isRecordingPadIndex: Int? = nil
     
+    /// A localized cache of child ViewModels to prevent unnecessary re-allocations during UI redraws.
+    /// - Note: Marked with `@ObservationIgnored` to prevent infinite rendering loops when SwiftUI
+    ///         queries the factory method during a view update.
+    @ObservationIgnored
+    private var padViewModelCache: [Int: SamplerPadViewModel] = [:]
+    
+    // MARK: - Global Interaction State
+    
+    /// Determines how pad interactions are interpreted by the gesture router.
+    /// - `true`: Interactions open configuration menus (Editor/Picker).
+    /// - `false`: Interactions trigger audio playback.
+    /// - Note: Entering Edit Mode instantly halts all active audio playback to prevent sonic clutter.
+    var isEditMode: Bool = false {
+        didSet {
+            if isEditMode {
+                Task { await audioService.stopAll() }
+            }
+        }
+    }
+    
+    // MARK: - Navigation State
+    
+    /// The `ObjectIdentifier` of the sample currently selected for editing.
+    /// Binding this to a SwiftUI `.sheet` triggers the Waveform Editor modal.
+    var sampleIDToEdit: EditContext? = nil
+    
+    /// The index of the empty pad currently awaiting a sample assignment.
+    /// Binding this to a SwiftUI `.sheet` triggers the Sample picker modal.
+    var padIndexAwaitingAssignment: PickerContext? = nil
+    
+    // MARK: - Initialization
+    
+    /// Initializes the orchestrator with strict boundaries.
+    /// - Parameters:
+    ///   - repository: The central vault managing sample lifecycles and identities.
+    ///   - audioService: The hardware bridge for routing audio to the engine.
+    ///   - waveformGenerator: The math engine for rendering visuals.
     init(repository: SamplerRepositoryProtocols,
          audioService: AudioServiceProtocol,
          waveformGenerator: WaveformGenerationService) {
@@ -202,59 +82,89 @@ class SamplerViewModel {
         self.audioService = audioService
         self.waveformGenerator = waveformGenerator
     }
-    // MARK: - Global Interaction State
-    var isEditMode: Bool = false
-    
-    // MARK: - Navigation State
-    // These hold the ID of the sample to edit, or the pad to assign
-    var sampleIDToEdit: ObjectIdentifier? = nil
-    var padIndexAwaitingAssignment: Int? = nil
     
     // MARK: - Pad UI Factory
     
-    /// Creates a dedicated ViewModel for a single pad so the UI stays "dumb"
+    /// Generates a lightweight, read-only ViewModel for a specific pad.
+    ///
+    /// This factory method keeps the SwiftUI layer completely ignorant of domain logic,
+    /// while utilizing an internal cache to protect state during high-frequency UI redraws.
+    ///
+    /// - Parameter padIndex: The physical slot number (0-15).
+    /// - Returns: A `SamplerPadViewModel` if a sample is assigned, otherwise `nil`.
     func getViewModel(for padIndex: Int) -> SamplerPadViewModel? {
-        guard let sampleID = padAssignments[padIndex] else { return nil }
+        // If the pad is empty, remove it from the cache
+        guard let sampleID = padAssignments[padIndex] else {
+            padViewModelCache.removeValue(forKey: padIndex)
+            return nil
+        }
         
-        return SamplerPadViewModel(
+        // If we already built a ViewModel for this exact sample, return it instantly
+        if let existingVM = padViewModelCache[padIndex], existingVM.sampleID == sampleID {
+            return existingVM
+        }
+        
+        // Otherwise, build a new one, cache it, and return it
+        let newVM = SamplerPadViewModel(
             sampleID: sampleID,
-            repository: repository, // We pass the required protocols down
+            repository: repository,
+            generator: waveformGenerator
+        )
+        padViewModelCache[padIndex] = newVM
+        return newVM
+    }
+    
+    // MARK: - Editor UI Factory
+        
+    /// Creates a specialized ViewModel for the Waveform Editor.
+    ///
+    /// - Parameter sampleID: The unique identifier of the sample to edit.
+    /// - Returns: A `WaveformEditorViewModel` if the sample exists, otherwise `nil`.
+    func getEditorViewModel(for sampleID: ObjectIdentifier) -> WaveformEditorViewModel? {
+        return WaveformEditorViewModel(
+            sampleID: sampleID,
+            repository: repository,
+            audioService: audioService,
             generator: waveformGenerator
         )
     }
     
     // MARK: - Interaction Routing
-        
+    
+    /// The central router for tap gestures initiated by the UI.
+    ///
+    /// Evaluates the global `isEditMode` state to determine whether to trigger audio playback
+    /// or update navigation state variables to present modal sheets.
+    ///
+    /// - Parameter padIndex: The physical slot number (0-15) that was tapped.
     func handlePadTap(padIndex: Int) {
         if isEditMode {
             if let assignedID = padAssignments[padIndex] {
-                // Edit Mode + Has Sample = Open Editor
-                sampleIDToEdit = assignedID
+                sampleIDToEdit = EditContext(id: assignedID)
             } else {
-                // Edit Mode + Empty Pad = Open Picker
-                padIndexAwaitingAssignment = padIndex
+                padIndexAwaitingAssignment = PickerContext(id: padIndex)
             }
         } else {
-            // Play Mode = Trigger Sound
             Task { await playPad(padIndex: padIndex) }
         }
     }
     
     // MARK: - Playback Flow
     
+    /// Fetches the read-only playback view of a sample and triggers overlapping playback.
+    ///
+    /// - Parameter padIndex: The physical slot number (0-15).
     func playPad(padIndex: Int) async {
-        // 1. Get the ID for the pad
-        guard let sampleID = padAssignments[padIndex] else { return }
+        guard let sampleID = padAssignments[padIndex],
+              let playableSample = repository.getPlayableSample(for: sampleID) else { return }
         
-        // 2. Get the specific "Playable" view of the sample
-        guard let playableSample = repository.getPlayableSample(for: sampleID) else { return }
-        
-        // 3. Play it using voice stealing (polyphony) so rapid drum hits don't clip!
         await audioService.playOverlapping(playableSample)
     }
     
     // MARK: - Recording Flow
     
+    /// Initiates hardware microphone capture for the specified pad.
+    /// - Parameter padIndex: The physical slot number (0-15) being held.
     func startRecording(on padIndex: Int) async {
         guard !audioService.isRecording else { return }
         
@@ -268,23 +178,22 @@ class SamplerViewModel {
         }
     }
     
+    /// Halts hardware microphone capture, saves the file to the repository, and assigns it to the pad.
+    ///
+    /// - Note: Sample creation is strictly delegated to the repository via `addSample(url:)`.
+    ///         The resulting sample is immediately loaded into the audio engine with polyphony allocated.
+    /// - Parameter padIndex: The physical slot number (0-15) that was released.
     func stopRecording(on padIndex: Int) async {
         isRecordingPadIndex = nil
         
-        // 1. Stop the recorder and get the file URL
         guard let result = await audioService.stopRecording() else { return }
         
-        // 2. Hand the URL to the Vault.
-        // Noah's Rule: "The repository is the only thing that calls AudioSample.init"
         let newSampleID = repository.addSample(url: result.url)
-        
-        // 3. Assign the returned ObjectIdentifier to the pad
         padAssignments[padIndex] = newSampleID
         
-        // 4. Load it into the Audio Engine's RAM for instant playback
         if let playableSample = repository.getPlayableSample(for: newSampleID) {
             do {
-                // Polyphony of 6 allows you to rapidly hit the pad 6 times before it cuts off
+                // Pre-allocate 6 voices to allow rapid drum rolls (machine-gun effect) on this newly recorded sample
                 try await audioService.load(sample: playableSample, polyphony: 6)
             } catch {
                 print("Failed to load sample into engine: \(error)")
@@ -292,21 +201,46 @@ class SamplerViewModel {
         }
     }
     
-    // MARK: - Sample Management
+    // MARK: - Sample Management // clarify behavior
     
-    func clearPad(padIndex: Int) async {
-        guard let sampleID = padAssignments.removeValue(forKey: padIndex) else { return }
+    /// Unassigns a sample from a pad and performs proactive garbage collection.
+    ///
+    /// If the unassigned sample is no longer referenced by any other pad in the grid,
+    /// it is unloaded from the audio engine's RAM and permanently removed from the repository.
+    ///
+    /// - Parameter padIndex: The physical slot number (0-15) to clear.
+//    func clearPad(padIndex: Int) async {
+//        guard let sampleID = padAssignments.removeValue(forKey: padIndex) else { return }
+//        
+//        let isUsedElsewhere = padAssignments.values.contains(sampleID)
+//        
+//        if !isUsedElsewhere {
+//            if let playableSample = repository.getPlayableSample(for: sampleID) {
+//                await audioService.unload(playableSample)
+//            }
+//            repository.removeSample(id: sampleID)
+//        }
+//    }
+    
+    // MARK: - Helper Methods
         
-        // Check if any other pad is using this exact same sample ID
-        let isUsedElsewhere = padAssignments.values.contains(sampleID)
+    /// Assigns an existing repository sample to a pad and loads it into memory.
+    /// - Parameters:
+    ///   - sampleID: The unique identifier of the selected sample.
+    ///   - padIndex: The target physical slot number (0-15).
+    func assignSample(_ sampleID: ObjectIdentifier, toPad padIndex: Int) {
+        // Update the ledger instantly for a responsive UI
+        padAssignments[padIndex] = sampleID
         
-        if !isUsedElsewhere {
-            // Unload from RAM to save memory
-            if let playableSample = repository.getPlayableSample(for: sampleID) {
-                await audioService.unload(playableSample)
+        // Spin up a background thread for the heavy file I/O
+        Task {
+            if let playable = repository.getPlayableSample(for: sampleID) {
+                do {
+                    try await audioService.load(sample: playable, polyphony: 6)
+                } catch {
+                    print("Failed to load picked sample: \(error.localizedDescription)")
+                }
             }
-            // Remove from the global repository completely
-            repository.removeSample(id: sampleID)
         }
     }
 }
