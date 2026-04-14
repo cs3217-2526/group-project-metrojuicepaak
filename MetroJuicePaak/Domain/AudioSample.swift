@@ -33,7 +33,7 @@ struct EffectDescriptor {
 ///
 /// - Note: Names are not unique and not stable identifiers. Use
 ///         `ObjectIdentifier` for identity.
-protocol NamedAudioSample {
+protocol NamedAudioSample: AnyObject {
     var name: String { get }
 }
 
@@ -43,7 +43,7 @@ protocol NamedAudioSample {
 /// and the step sequencer — should depend on this protocol rather than the
 /// concrete `AudioSample` type. This guarantees at compile time that the
 /// playback path cannot mutate trim markers, effects, or other editable state.
-protocol PlayableAudioSample {
+protocol PlayableAudioSample: AnyObject {
     /// The on-disk location of the audio file to play.
     var url: URL { get }
     
