@@ -79,33 +79,74 @@ final class AudioEngine {
     // MARK: - Playback
 
     /// Retrigger: stops all voices for this sample and restarts from voice 0.
+//    func play(_ sample: PlayableAudioSample) {
+//        let key = poolKey(for: sample)
+//        guard let pool = voicePools[key] else {
+//            logger.warning("play() called on unloaded sample '\(sample.url.lastPathComponent)'")
+//            return
+//        }
+//        pool.voices.forEach { $0.stop() }
+//        pool.nextVoiceIndex = 0
+//        let voice = pool.voices[0]
+//        applyMixerProperties(sample, to: voice)
+//        voice.start()
+//    }
+    
+    // MARK: - CHANGES TO NOTE:
+    /// Retriggers playback: stops all active voices for this sample and restarts from voice 0.
+    ///
+    /// **Architecture Update:**
+    /// The Audio Engine acts as the bridge between the domain model (`PlayableAudioSample`)
+    /// and the hardware wrapper (`SampleVoice`). Because `SampleVoice` is strictly decoupled
+    /// from domain concepts, the engine is responsible for extracting the sample's current
+    /// trim ratios and injecting them directly into the voice at the moment of playback.
+    ///
+    /// - Parameter sample: The read-only playback view of the sample to play.
     func play(_ sample: PlayableAudioSample) {
         let key = poolKey(for: sample)
-        guard let pool = voicePools[key] else {
-            logger.warning("play() called on unloaded sample '\(sample.url.lastPathComponent)'")
-            return
-        }
+        guard let pool = voicePools[key] else { return }
         pool.voices.forEach { $0.stop() }
         pool.nextVoiceIndex = 0
         let voice = pool.voices[0]
         applyMixerProperties(sample, to: voice)
-        voice.start()
+        
+        // Pass the live domain trim ratios down to the hardware voice
+        voice.start(startTimeRatio: sample.startTimeRatio, endTimeRatio: sample.endTimeRatio)
     }
+
+    /// Triggers overlapping playback using round-robin voice stealing.
+    ///
+    /// **Architecture Update:**
+    /// Similar to standard `play()`, this method extracts the `startTimeRatio` and
+    /// `endTimeRatio` from the domain model and explicitly passes them down so the
+    /// physical audio buffer respects any trims made in the Waveform Editor UI.
+    ///
+    /// - Parameter sample: The read-only playback view of the sample to play.
+    func playOverlapping(_ sample: PlayableAudioSample) {
+        let key = poolKey(for: sample)
+        guard let pool = voicePools[key] else { return }
+        let voice = pool.nextVoice()
+        applyMixerProperties(sample, to: voice)
+        
+        // Pass the live domain trim ratios down to the hardware voice
+        voice.start(startTimeRatio: sample.startTimeRatio, endTimeRatio: sample.endTimeRatio)
+    }
+    // MARK: - CHANGES TO NOTE ^ ^
 
     /// Overlapping playback with round-robin voice stealing.
     /// When all polyphony slots are busy the oldest voice is stopped and reused.
-    func playOverlapping(_ sample: PlayableAudioSample) {
-        let key = poolKey(for: sample)
-        guard let pool = voicePools[key] else {
-            logger.warning("playOverlapping() called on unloaded sample '\(sample.url.lastPathComponent)'")
-            return
-        }
-        let voice = pool.nextVoice()
-        applyMixerProperties(sample, to: voice)
-        // SampleVoice.start() calls playerNode.stop() before scheduling,
-        // so this naturally steals the voice if it is already playing.
-        voice.start()
-    }
+//    func playOverlapping(_ sample: PlayableAudioSample) {
+//        let key = poolKey(for: sample)
+//        guard let pool = voicePools[key] else {
+//            logger.warning("playOverlapping() called on unloaded sample '\(sample.url.lastPathComponent)'")
+//            return
+//        }
+//        let voice = pool.nextVoice()
+//        applyMixerProperties(sample, to: voice)
+//        // SampleVoice.start() calls playerNode.stop() before scheduling,
+//        // so this naturally steals the voice if it is already playing.
+//        voice.start()
+//    }
 
     func stop(_ sample: PlayableAudioSample) {
         voicePools[poolKey(for: sample)]?.voices.forEach { $0.stop() }

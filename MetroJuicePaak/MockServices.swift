@@ -82,13 +82,13 @@ class MockAudioRecordingService: AudioRecordingService {
 }
 
 // MARK: - Fake Waveform Generator
+// A temporary mock so the UI can be tested before the real math engine is done.
 class MockWaveformGenerator: WaveformGenerationService {
-    
-    func generateWaveform(for sample: AudioSample, resolution: Int) async -> WaveformData {
-        print("📊 [MOCK] Generating waveform array of \(resolution) points for: \(sample.name)")
+    func generateWaveform(for source: WaveformSource, resolution: Int) async -> WaveformData {
+        // Generate a fake array of floats between 0.1 and 0.9 to simulate audio peaks
+        let fakePoints = (0..<resolution).map { _ in Float.random(in: 0.1...0.9) }
         
-        // Create the array of floats, then wrap it in the WaveformData struct
-        let mockPoints = Array(repeating: Float(0.1), count: resolution)
-        return WaveformData(points: mockPoints)
+        // Assuming your WaveformData struct takes an array of points
+        return WaveformData(points: fakePoints)
     }
 }

@@ -1,3 +1,11 @@
+//
+//  WaveformData.swift
+//  MetroJuicePaak
+//
+//  Created by Noah Ang Shi Hern on 15/4/26.
+//
+
+
 import Foundation
 import AVFoundation
 
