@@ -9,14 +9,16 @@ import SwiftUI
 
 @main
 struct MetroJuicePaakApp: App {
-    @State private var samplerViewModel: SamplerViewModel?
+    // Renamed to match the terminology we used in the View
+    @State private var orchestrator: SamplerViewModel?
     @State private var initializationError: Error?
     
     var body: some Scene {
         WindowGroup {
             Group {
-                if let viewModel = samplerViewModel {
-                    SamplerView(viewModel: viewModel)
+                if let viewModel = orchestrator {
+                    // Pass it as 'orchestrator' since we updated the SamplerView parameter
+                    SamplerView(orchestrator: viewModel)
                 } else if let error = initializationError {
                     ErrorView(error: error)
                 } else {
@@ -31,30 +33,35 @@ struct MetroJuicePaakApp: App {
     
     @MainActor
     private func initializeAudio() async {
+        print("🎙️ 1. Starting audio initialization...")
         do {
-            // Instantiate the Mocks!
-            let waveformGenerator: WaveformGenerationService = MockWaveformGenerator()
-            let playbackService: AudioPlaybackService = MockAudioPlaybackService()
-            let recordingService: AudioRecordingService = MockAudioRecordingService()
+            let repository = AudioSampleRepository()
+            print("🎙️ 2. Repository created successfully.")
             
-            // Pass them into the Conductor and Sampler exactly as before
-            let audioSampleRepoVM = AudioSampleRepositoryViewModel(generator: waveformGenerator)
+            // If the console stops here, the bug is inside your teammate's AudioService init!
+            let audioService = try await AudioService()
+            print("🎙️ 3. AudioService created successfully.")
+            
+            let waveformGenerator = WaveformCache()
             
             let viewModel = SamplerViewModel(
-                audioSampleVM: audioSampleRepoVM,
-                playbackService: playbackService,
-                recordingService: recordingService
+                repository: repository,
+                audioService: audioService,
+                waveformGenerator: waveformGenerator
             )
+            print("🎙️ 4. Orchestrator built successfully.")
             
-            self.samplerViewModel = viewModel
+            self.orchestrator = viewModel
+            print("🎙️ 5. State updated! The UI should switch right now.")
             
         } catch {
             self.initializationError = error
+            print("🛑 Initialization failed: \(error.localizedDescription)")
         }
     }
 }
 
-// Simple error view to display initialization errors
+// Simple error view to display initialization errors (Unchanged)
 struct ErrorView: View {
     let error: Error
     
@@ -73,7 +80,6 @@ struct ErrorView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             
-            // Optional cast might require your specific Error enum type here
             if error.localizedDescription.contains("Permission") {
                 Text("Please enable microphone access in Settings")
                     .font(.caption)

@@ -62,3 +62,12 @@ protocol AudioPlaybackService {
     /// - Returns: true if playing, false otherwise
     func isPlaying(_ sample: PlayableAudioSample) -> Bool
 }
+
+/// Result of a recording session
+struct RecordingResult {
+    /// Absolute URL to the recorded file (AudioService creates this)
+    let url: URL
+    
+    /// Duration of the recording in seconds
+    let duration: TimeInterval
+}
