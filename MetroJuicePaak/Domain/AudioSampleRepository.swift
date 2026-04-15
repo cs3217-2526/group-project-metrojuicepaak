@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Observation
 
 // MARK: - Segregated Protocols
 
@@ -106,6 +107,7 @@ protocol WaveformSourceAudioSampleRepository {
 /// - File-on-disk lifecycle. Removing a sample does not delete the underlying
 ///   recording; cleanup is a separate, batched operation that scans for
 ///   unreferenced files.
+@Observable
 final class AudioSampleRepository: ReadableAudioSampleRepository,
                                     WritableAudioSampleRepository,
                                     EditableAudioSampleRepository,

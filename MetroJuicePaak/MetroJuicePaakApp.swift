@@ -6,23 +6,27 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 @main
 struct MetroJuicePaakApp: App {
-    // Renamed to match the terminology we used in the View
-    @State private var orchestrator: SamplerViewModel?
+    @State private var samplerOrchestrator: SamplerViewModel?
+    @State private var sequencerViewModel: StepSequencerViewModel?
     @State private var initializationError: Error?
     
     var body: some Scene {
         WindowGroup {
             Group {
-                if let viewModel = orchestrator {
-                    // Pass it as 'orchestrator' since we updated the SamplerView parameter
-                    SamplerView(orchestrator: viewModel)
+                // Wait until BOTH ViewModels are successfully initialized
+                if let samplerVM = samplerOrchestrator, let sequencerVM = sequencerViewModel {
+                    MainTabView(
+                        samplerOrchestrator: samplerVM,
+                        sequencerViewModel: sequencerVM
+                    )
                 } else if let error = initializationError {
                     ErrorView(error: error)
                 } else {
-                    ProgressView("Initializing audio...")
+                    ProgressView("Initializing audio engine...")
                 }
             }
             .task {
@@ -44,15 +48,31 @@ struct MetroJuicePaakApp: App {
             
             let waveformGenerator = WaveformCache()
             
-            let viewModel = SamplerViewModel(
+            let avEngine = AVAudioEngine()
+            
+            let timeProvider = AudioTimeProvider(audioEngine: avEngine)
+            
+            let musicEngine = MusicEngineImplementation(audioPlaybackService: audioService, timeProvider: timeProvider)
+            
+            // Initialize Sampler
+            let samplerVM = SamplerViewModel(
                 repository: repository,
                 audioService: audioService,
                 waveformGenerator: waveformGenerator
             )
-            print("🎙️ 4. Orchestrator built successfully.")
+            print("🎙️ 4. Sampler Orchestrator built successfully.")
             
-            self.orchestrator = viewModel
-            print("🎙️ 5. State updated! The UI should switch right now.")
+            // Initialize Step Sequencer
+            // AudioService acts as the MusicEngine, Repository acts as ReadableAudioSampleRepository
+            let sequencerVM = StepSequencerViewModel(
+                repository: repository,
+                musicEngine: musicEngine
+            )
+            print("🎙️ 5. Step Sequencer ViewModel built successfully.")
+            
+            self.samplerOrchestrator = samplerVM
+            self.sequencerViewModel = sequencerVM
+            print("🎙️ 6. State updated! Switching to TabView.")
             
         } catch {
             self.initializationError = error

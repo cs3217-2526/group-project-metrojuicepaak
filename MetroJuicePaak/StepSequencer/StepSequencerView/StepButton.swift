@@ -14,23 +14,26 @@ struct StepButton: View {
     
     var body: some View {
         Button(action: action) {
-            RoundedRectangle(cornerRadius: 6)
+            Rectangle()
                 .fill(fillColor)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        // Show a white border if the playhead is currently on this step
+                    Rectangle()
                         .stroke(isCurrentStep ? Color.white : Color.clear, lineWidth: 2)
                 )
         }
-        .frame(width: 40, height: 40)
+        // 🟢 THE FIX: Remove the fixed width and replace it with maxWidth: .infinity!
+        // This tells the button to stretch or shrink dynamically.
+        .frame(maxWidth: .infinity)
+        .frame(height: 44) // Keep the height fixed to match the Track Header
         .buttonStyle(PlainButtonStyle())
+        .cornerRadius(2)
     }
     
     private var fillColor: Color {
         if isActive {
-            return .cyan
+            return Color(red: 0.0, green: 0.8, blue: 0.9)
         } else {
-            return Color.gray.opacity(0.3)
+            return Color(white: 0.15)
         }
     }
 }
