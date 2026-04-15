@@ -2,7 +2,7 @@
 //  WaveformData.swift
 //  MetroJuicePaak
 //
-//  Created by proglab on 15/4/26.
+//  Created by Noah Ang Shi Hern on 15/4/26.
 //
 
 
