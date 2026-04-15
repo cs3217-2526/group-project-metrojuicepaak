@@ -249,7 +249,7 @@ final class MusicEngineImplementation: MusicEngine {
         stepIndex: Int,
         absoluteStep: Int,
         targetTime: TimeInterval,
-        tracks: [UUID: SequencerTrack]
+        tracks: [UUID: EngineTrack]
     ) {
         
         // Iterate through all tracks
