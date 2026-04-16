@@ -13,13 +13,16 @@ class StepSequencerViewModel {
     // MARK: - State
     var sequencerModel: StepSequencerModel
     
-    // 🟢 NEW: Directly injecting the strictly-scoped readable protocol
     let repository: ReadableAudioSampleRepository
     private let musicEngine: MusicEngine
     private let undoRedoManager = UndoRedoManager()
     
     var isPlaying: Bool = false
     var currentStep: Int = 0
+    
+    // MARK: - UI Playhead State
+    private var playbackTimer: Timer?
+    private var playbackStartTime: Date?
     
     // MARK: - Initialization
     init(repository: ReadableAudioSampleRepository, musicEngine: MusicEngine) {
@@ -36,13 +39,11 @@ class StepSequencerViewModel {
         for track in sequencerModel.tracks {
             var pureSample: AudioSample? = nil
             
-            // 🟢 NEW: Query the injected protocol safely using ObjectIdentifier
             if let sampleID = track.sampleID,
                let playable = repository.getPlayableSample(for: sampleID) as? AudioSample {
                 pureSample = playable
             }
             
-            // Package the frozen values for the background thread
             engineTracks[track.id] = EngineTrack(sample: pureSample, steps: track.steps)
         }
         
@@ -56,13 +57,56 @@ class StepSequencerViewModel {
     
     // MARK: - Playback Controls
     
+    private func startVisualPlayhead() {
+        // Invalidate any existing timer just to be safe
+        playbackTimer?.invalidate()
+        playbackStartTime = Date()
+        
+        // Run a fast timer (approx 60fps) on the main thread to keep the UI buttery smooth
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] _ in
+            guard let self = self, let startTime = self.playbackStartTime else { return }
+            
+            // 1. Calculate how much time has passed since we hit play
+            let elapsed = Date().timeIntervalSince(startTime)
+            
+            // 2. Do the BPM math to find out how long a single step is
+            let secondsPerBeat = 60.0 / self.sequencerModel.bpm
+            let secondsPerStep = secondsPerBeat / 4.0 // 16th notes
+            
+            // 3. Figure out which absolute step we are on
+            let absoluteStep = Int(floor(elapsed / secondsPerStep))
+            
+            // 4. Wrap it around the track length (8, 16, or 32)
+            let newStep = absoluteStep % self.sequencerModel.stepCount
+            
+            // 5. Only trigger a SwiftUI redraw if the step actually moved!
+            if newStep != self.currentStep {
+                self.currentStep = newStep
+            }
+        }
+    }
+    
+    private func stopVisualPlayhead() {
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        currentStep = 0
+    }
+    
     func togglePlayback() {
         isPlaying.toggle()
+        
         if isPlaying {
-            publishSnapshot() // Ensure engine has latest data before starting
+            // 1. Start the hardware audio scheduler
             musicEngine.startSequencer()
+            
+            // 2. Start the UI playhead
+            startVisualPlayhead()
         } else {
+            // 1. Stop the hardware audio scheduler
             musicEngine.stopSequencer()
+            
+            // 2. Stop the UI playhead and reset to zero
+            stopVisualPlayhead()
         }
     }
     
@@ -70,19 +114,17 @@ class StepSequencerViewModel {
     
     func increaseBPM() {
         let currentBPM = sequencerModel.bpm
-        // Clamp to a reasonable maximum tempo
         if currentBPM < 300 {
             sequencerModel.bpm = currentBPM + 1
-            publishSnapshot() // Instantly updates the audio engine's lookahead math
+            publishSnapshot()
         }
     }
     
     func decreaseBPM() {
         let currentBPM = sequencerModel.bpm
-        // Clamp to a reasonable minimum tempo
         if currentBPM > 40 {
             sequencerModel.bpm = currentBPM - 1
-            publishSnapshot() // Instantly updates the audio engine's lookahead math
+            publishSnapshot()
         }
     }
     
@@ -95,7 +137,6 @@ class StepSequencerViewModel {
     }
     
     internal func insertTrack(_ track: SequencerTrack, at index: Int) {
-        // Safe array insertion
         let safeIndex = min(max(index, 0), sequencerModel.tracks.count)
         sequencerModel.tracks.insert(track, at: safeIndex)
         publishSnapshot()
@@ -125,7 +166,6 @@ class StepSequencerViewModel {
         
         sequencerModel.stepCount = newStepCount
         
-        // Loop directly over the array of track classes
         for track in sequencerModel.tracks {
             
             // 1. If the user hit Undo, restore the exact pattern from memory
@@ -155,12 +195,9 @@ class StepSequencerViewModel {
                 }
             }
             
-            // Because 'track' is a class, we just assign it directly!
-            // No need to copy into an 'updatedTrack' struct.
             track.steps = newSteps
         }
         
-        // Safety check to prevent the playhead from jumping out of bounds
         if currentStep >= newStepCount {
             currentStep = 0
         }
@@ -207,7 +244,6 @@ class StepSequencerViewModel {
     func executeChangeStepCount(to newCount: Int) {
         guard newCount != sequencerModel.stepCount else { return }
         
-        // Backup the current arrays for Undo functionality
         var oldSteps: [UUID: [Bool]] = [:]
         for track in sequencerModel.tracks {
             oldSteps[track.id] = track.steps

@@ -21,10 +21,8 @@ struct StepButton: View {
                         .stroke(isCurrentStep ? Color.white : Color.clear, lineWidth: 2)
                 )
         }
-        // 🟢 THE FIX: Remove the fixed width and replace it with maxWidth: .infinity!
-        // This tells the button to stretch or shrink dynamically.
         .frame(maxWidth: .infinity)
-        .frame(height: 44) // Keep the height fixed to match the Track Header
+        .frame(height: 44)
         .buttonStyle(PlainButtonStyle())
         .cornerRadius(2)
     }

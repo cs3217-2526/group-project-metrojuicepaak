@@ -32,6 +32,9 @@ final class SampleVoice {
 
     /// The audio file this voice plays. Read from disk in loadFile().
     private var audioFile: AVAudioFile?
+    
+    // 🟢 The Master RAM Storage
+    private var masterBuffer: AVAudioPCMBuffer?
 
     /// The current chain's live effects, in order. Parallel to `effectUnits`.
     /// Indexed by position; parameter lookups use `effectsByInstanceId` instead.
@@ -81,6 +84,16 @@ final class SampleVoice {
     func loadFile(from url: URL) throws {
         let file = try AVAudioFile(forReading: url)
         self.audioFile = file
+        
+        let format = file.processingFormat
+        let frameCount = AVAudioFrameCount(file.length)
+        
+        // 🟢 Read the disk ONCE and store the entire file in RAM
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            throw SampleVoiceError.notLoaded
+        }
+        try file.read(into: buffer)
+        self.masterBuffer = buffer
         
         // 1. Attach the node
         engine.attach(playerNode)
@@ -193,25 +206,90 @@ final class SampleVoice {
     /// - Note: Uses `scheduleSegment` instead of `scheduleFile` to physically crop the buffer
     ///         before it reaches the engine. Includes a safety guard to prevent `AVAudioEngine`
     ///         from crashing if the trimmed frame count resolves to 0.
-    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
-        guard let file = audioFile else { return }
+//    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
+//        guard let file = audioFile else { return }
+//        playerNode.stop()
+//        
+//        let totalFrames = file.length
+//        let startFrame = AVAudioFramePosition(Double(totalFrames) * startTimeRatio)
+//        let frameCount = AVAudioFrameCount(Double(totalFrames) * (endTimeRatio - startTimeRatio))
+//        
+//        // Safety check to prevent engine crashes on zero-length frames
+//        if frameCount > 0 {
+//            playerNode.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil, completionHandler: nil)
+//        }
+//        
+//        if !engine.isRunning {
+//            try? engine.start()
+//        }
+//        playerNode.play()
+//    }
+    // MARK: - CHANGES TO NOTE ^ ^
+    
+    /// Schedules and begins playback at an exact hardware timestamp using RAM.
+    func start(at time: TimeInterval, startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
         playerNode.stop()
         
-        let totalFrames = file.length
-        let startFrame = AVAudioFramePosition(Double(totalFrames) * startTimeRatio)
-        let frameCount = AVAudioFrameCount(Double(totalFrames) * (endTimeRatio - startTimeRatio))
+        // 1. Slice the required segment out of RAM instantly
+        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio, endTimeRatio: endTimeRatio) else { return }
         
-        // Safety check to prevent engine crashes on zero-length frames
-        if frameCount > 0 {
-            playerNode.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil, completionHandler: nil)
-        }
+        // 2. Convert to hardware clock time
+        let hostTime = AudioTimeConverter.hostTimeFrom(timeInterval: time)
+        let avTime = AVAudioTime(hostTime: hostTime)
         
-        if !engine.isRunning {
-            try? engine.start()
-        }
+        // 3. Schedule the RAM buffer
+        playerNode.scheduleBuffer(buffer, at: avTime, options: .interrupts, completionHandler: nil)
+        
+        if !engine.isRunning { try? engine.start() }
         playerNode.play()
     }
-    // MARK: - CHANGES TO NOTE ^ ^
+
+    /// Immediate playback for the Sampler pads
+    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
+        playerNode.stop()
+        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio, endTimeRatio: endTimeRatio) else { return }
+        
+        playerNode.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
+        
+        if !engine.isRunning { try? engine.start() }
+        playerNode.play()
+    }
+    
+    // MARK: - RAM Buffer Slicing (The Industry Secret)
+
+    /// Safely copies the exact frames needed from the master buffer into a temporary playback buffer.
+    private func getTrimmedBuffer(startTimeRatio: Double, endTimeRatio: Double) -> AVAudioPCMBuffer? {
+        guard let master = masterBuffer else { return nil }
+        
+        // Fast-path: If the user hasn't edited the trim markers, just play the whole master buffer!
+        if startTimeRatio == 0.0 && endTimeRatio == 1.0 {
+            return master
+        }
+        
+        let totalFrames = Double(master.frameLength)
+        let startFrame = AVAudioFramePosition(totalFrames * startTimeRatio)
+        let frameCount = AVAudioFrameCount(totalFrames * (endTimeRatio - startTimeRatio))
+        
+        guard frameCount > 0,
+              let croppedBuffer = AVAudioPCMBuffer(pcmFormat: master.format, frameCapacity: frameCount) else {
+            return nil
+        }
+        
+        croppedBuffer.frameLength = frameCount
+        
+        // Perform a lightning-fast memory copy for each audio channel
+        for channel in 0..<Int(master.format.channelCount) {
+            guard let masterData = master.floatChannelData?[channel],
+                  let croppedData = croppedBuffer.floatChannelData?[channel] else { continue }
+            
+            // Advance the pointer to the start frame and copy the data
+            let sourcePointer = masterData.advanced(by: Int(startFrame))
+            croppedData.update(from: sourcePointer, count: Int(frameCount))
+        }
+        
+        return croppedBuffer
+    }
+    // MARK: - CHANGES TO NOTE ^ ^ (FROM EDWIN)
 
     func stop() {
         playerNode.stop()

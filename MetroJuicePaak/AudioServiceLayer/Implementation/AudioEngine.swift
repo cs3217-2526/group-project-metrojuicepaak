@@ -147,6 +147,22 @@ final class AudioEngine {
 //        // so this naturally steals the voice if it is already playing.
 //        voice.start()
 //    }
+    
+    func scheduleAt(sample: PlayableAudioSample, time: TimeInterval) {
+        let key = poolKey(for: sample)
+        guard let pool = voicePools[key] else { return }
+        
+        let voice = pool.nextVoice()
+        applyMixerProperties(sample, to: voice)
+        
+        // Pass the precise time and the trim markers down to the voice
+        voice.start(
+            at: time,
+            startTimeRatio: sample.startTimeRatio,
+            endTimeRatio: sample.endTimeRatio
+        )
+    }
+    // MARK: - CHANGES TO NOTE ^ ^ (FROM EDWIN)
 
     func stop(_ sample: PlayableAudioSample) {
         voicePools[poolKey(for: sample)]?.voices.forEach { $0.stop() }

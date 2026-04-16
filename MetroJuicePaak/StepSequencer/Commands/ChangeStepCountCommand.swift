@@ -7,7 +7,6 @@
 
 import Foundation
 
-// MARK: - Change Step Count
 class ChangeStepCountCommand: Command {
     private let oldStepCount: Int
     private let newStepCount: Int

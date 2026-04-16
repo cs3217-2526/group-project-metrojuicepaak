@@ -25,7 +25,6 @@ class DeleteTrackCommand: Command {
     }
     
     func undo() {
-        // Restore the track to its exact previous location in the array
         viewModel?.insertTrack(trackBackup, at: originalIndex)
     }
 }

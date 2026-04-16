@@ -10,10 +10,8 @@ import Observation
 
 @Observable
 class SequencerTrack: Identifiable {
-    // A stable ID so SwiftUI's ForEach can track this specific row
     let id: UUID
     
-    // Links directly to the new AudioSampleRepository using ObjectIdentifier
     var sampleID: ObjectIdentifier?
     
     var steps: [Bool]

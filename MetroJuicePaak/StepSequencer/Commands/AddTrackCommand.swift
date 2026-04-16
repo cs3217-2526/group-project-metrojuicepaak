@@ -15,7 +15,6 @@ class AddTrackCommand: Command {
     }
     
     func execute() {
-        // Always append to the end of the array when executing
         let endPosition = viewModel?.sequencerModel.tracks.count ?? 0
         viewModel?.insertTrack(track, at: endPosition)
     }
