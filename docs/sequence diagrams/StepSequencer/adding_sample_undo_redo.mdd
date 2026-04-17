@@ -8,7 +8,7 @@ sequenceDiagram
     participant Engine as MusicEngine
 
     rect rgb(30, 40, 50)
-        note right of User: UNDO ACTION (Removes the Sample)
+        note right of User: UNDO ACTION (Reverts the Sample)
         User->>View: Taps Undo Button
         View->>VM: undo()
         activate VM
@@ -19,10 +19,15 @@ sequenceDiagram
         URM->>Cmd: undo()
         activate Cmd
         
-        note right of Cmd: Reverts track to a sample-less state
-        Cmd->>VM: removeSampleFromTrack(trackId: trackId)
+        note right of Cmd: Restores previous sampleID or removes if nil
+        alt has previousSampleID
+            Cmd->>VM: assignSampleToTrack(trackId: trackId, sampleID: previousSampleID)
+            VM->>VM: Set track.sampleID = previousSampleID
+        else previousSampleID is nil
+            Cmd->>VM: removeSampleFromTrack(trackId: trackId)
+            VM->>VM: Set track.sampleID = nil
+        end
         
-        VM->>VM: Set track.sample = nil
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
@@ -44,9 +49,9 @@ sequenceDiagram
         URM->>Cmd: execute()
         activate Cmd
         
-        Cmd->>VM: assignSampleToTrack(trackId: trackId, sample: AudioSample)
+        Cmd->>VM: assignSampleToTrack(trackId: trackId, sampleID: newSampleID)
         
-        VM->>VM: Set track.sample = sample
+        VM->>VM: Set track.sampleID = newSampleID
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
