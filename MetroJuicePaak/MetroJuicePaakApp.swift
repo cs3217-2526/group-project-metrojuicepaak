@@ -98,19 +98,14 @@ struct MetroJuicePaakApp: App {
 
 /// Centralized effect registration. Every built-in DSPEffect type the app
 /// ships with is registered here. Adding a new effect means adding a
-/// single line to this function — the rest of the app discovers it via
+/// single line to this function, after including the file in ConcreteDSPEffects
+/// the rest of the app discovers it via
 /// the registry at runtime.
 enum AppBootstrap {
     static func registerBuiltInEffects(into registry: EffectRegistry) {
-        // Register each concrete DSPEffect type as it becomes available.
-        
         registry.register(GainEffect.self)
         registry.register(LowpassEffect.self)
         registry.register(ReverbEffect.self)
-        // registry.register(HighpassEffect.self)
-        // registry.register(DistortionEffect.self)
-        // registry.register(DelayEffect.self)
-        // registry.register(CompressorEffect.self)
     }
 }
 
