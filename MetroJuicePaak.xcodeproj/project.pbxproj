@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		576C7F062F93C65C00527FD6 /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = 576C7F052F93C65C00527FD6 /* Atomics */; };
 		57B260262F6927DC00D45B43 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 57B260252F6927DC00D45B43 /* README.md */; };
 		57B260282F6928AA00D45B43 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 57B260272F6928A100D45B43 /* .gitignore */; };
 		57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 57B260352F6E840E00D45B43 /* swiftlint.yml */; };
@@ -75,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				576C7F062F93C65C00527FD6 /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,6 +97,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		576C7F042F93C65C00527FD6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		57B25FD42F69263A00D45B43 = {
 			isa = PBXGroup;
 			children = (
@@ -105,6 +114,7 @@
 				57B25FDF2F69263A00D45B43 /* MetroJuicePaak */,
 				57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */,
 				57B25FF72F69263B00D45B43 /* MetroJuicePaakUITests */,
+				576C7F042F93C65C00527FD6 /* Frameworks */,
 				57B25FDE2F69263A00D45B43 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -140,6 +150,7 @@
 			);
 			name = MetroJuicePaak;
 			packageProductDependencies = (
+				576C7F052F93C65C00527FD6 /* Atomics */,
 			);
 			productName = MetroJuicePaak;
 			productReference = 57B25FDD2F69263A00D45B43 /* MetroJuicePaak.app */;
@@ -223,6 +234,9 @@
 			);
 			mainGroup = 57B25FD42F69263A00D45B43;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				576C7F032F93C54A00527FD6 /* XCRemoteSwiftPackageReference "swift-atomics" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 57B25FDE2F69263A00D45B43 /* Products */;
 			projectDirPath = "";
@@ -631,6 +645,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		576C7F032F93C54A00527FD6 /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-atomics.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		576C7F052F93C65C00527FD6 /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 576C7F032F93C54A00527FD6 /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 57B25FD52F69263A00D45B43 /* Project object */;
 }

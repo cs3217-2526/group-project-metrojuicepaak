@@ -22,11 +22,13 @@ class SamplerViewModel {
     // MARK: - Dependencies
     
     /// A typealias restricting this ViewModel to only the repository capabilities it strictly needs.
-    typealias SamplerRepositoryProtocols = WritableAudioSampleRepository & ReadableAudioSampleRepository & WaveformSourceAudioSampleRepository & EditableAudioSampleRepository
+    typealias SamplerRepositoryProtocols = WritableAudioSampleRepository & ReadableAudioSampleRepository & WaveformSourceAudioSampleRepository & EditableAudioSampleRepository &
+        EffectableAudioSampleRepository
     
     let repository: SamplerRepositoryProtocols
     private let audioService: AudioServiceProtocol
     private let waveformGenerator: WaveformGenerationService
+    private let effectRegistry: EffectRegistry
     
     // MARK: - Core State
     
@@ -77,10 +79,12 @@ class SamplerViewModel {
     ///   - waveformGenerator: The math engine for rendering visuals.
     init(repository: SamplerRepositoryProtocols,
          audioService: AudioServiceProtocol,
-         waveformGenerator: WaveformGenerationService) {
+         waveformGenerator: WaveformGenerationService,
+         effectRegistry: EffectRegistry) {
         self.repository = repository
         self.audioService = audioService
         self.waveformGenerator = waveformGenerator
+        self.effectRegistry = effectRegistry
     }
     
     // MARK: - Pad UI Factory
@@ -126,6 +130,18 @@ class SamplerViewModel {
             repository: repository,
             audioService: audioService,
             generator: waveformGenerator
+        )
+    }
+    
+    // MARK: - Effects UI Factory
+    
+    func getEffectsEditorViewModel(for sampleID: ObjectIdentifier) -> EffectChainEditorViewModel? {
+        EffectChainEditorViewModel(
+            sampleId: sampleID,
+            repository: repository,
+            registry: effectRegistry,
+            liveChainService: audioService as! LiveEffectChainService,
+            audioService: audioService
         )
     }
     

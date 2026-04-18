@@ -67,7 +67,8 @@ class WaveformEditorViewModel {
     ///   - generator: The service used to render the high-resolution waveform.
     /// - Returns: `nil` if the sample no longer exists or if the repository cannot resolve all required views.
     init?(sampleID: ObjectIdentifier,
-          repository: ReadableAudioSampleRepository & EditableAudioSampleRepository & WaveformSourceAudioSampleRepository,
+          repository: ReadableAudioSampleRepository & EditableAudioSampleRepository & WaveformSourceAudioSampleRepository &
+              EffectableAudioSampleRepository,
           audioService: AudioServiceProtocol,
           generator: WaveformGenerationService) {
         

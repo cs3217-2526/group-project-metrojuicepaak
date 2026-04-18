@@ -10,8 +10,12 @@ final class AudioEngine {
 
     private let avEngine = AVAudioEngine()
     private var voicePools: [ObjectIdentifier: VoicePool] = [:]
-    private let registry: EffectRegistry = StubEffectRegistry()
+    private let registry: EffectRegistry
     private let logger = Logger(subsystem: "MetroJuicePaak", category: "AudioEngine")
+    
+    init(registry: EffectRegistry) {       
+        self.registry = registry
+    }
 
     // MARK: - Voice Pool
 
@@ -38,6 +42,12 @@ final class AudioEngine {
     /// Derives a stable identity key from a PlayableAudioSample.
     /// Assumes all conformers are reference types (classes), which is true for AudioSample.
     private func poolKey(for sample: PlayableAudioSample) -> ObjectIdentifier {
+        ObjectIdentifier(sample as AnyObject)
+    }
+    
+    /// Derives a stable identity key from an EffectableAudioSample.
+    /// Assumes all conformers are reference types (classes), which is true for AudioSample
+    private func poolKey(for sample: EffectableAudioSample) -> ObjectIdentifier {
         ObjectIdentifier(sample as AnyObject)
     }
 
@@ -166,5 +176,58 @@ final class AudioEngine {
 
     func isPlaying(_ sample: PlayableAudioSample) -> Bool {
         voicePools[poolKey(for: sample)]?.voices.contains { $0.playerNode.isPlaying } ?? false
+    }
+
+    // MARK: - Live Effect Chain
+    
+    
+
+    /// Rebuilds the effect chain on every voice in the pool for the given sample.
+    /// All voices share the same effect configuration because the effect chain
+    /// lives on the AudioSample (preset model), not on individual voices.
+
+    func rebuildEffectChain(for sample: EffectableAudioSample) async throws {
+        let key = poolKey(for: sample)
+        print("🔧 AudioEngine.rebuildEffectChain: sample has \(sample.effectDescriptorChain.count) effects")
+            // ... rest
+        guard let pool = voicePools[key] else {
+            logger.warning("rebuildEffectChain called on unloaded sample")
+            return
+        }
+
+        // Read the chain directly from the domain object.
+        let descriptor = EffectChainDescriptor(effects: sample.effectDescriptorChain)
+
+        for voice in pool.voices {
+            try await voice.rebuildChain(descriptor)
+        }
+
+        logger.info("Rebuilt effect chain (\(sample.effectDescriptorChain.count) effects) across \(pool.voices.count) voices")
+    }
+
+    /// Routes a parameter change to the correct live effect instance
+    /// across all voices in the pool.
+    ///
+    /// Every voice in the pool holds its own live DSPEffect instances
+    /// (because each voice needs independent DSP state — z1/z2 etc.),
+    /// so the parameter update must fan out to all of them. Each
+    /// setParameter call is lock-free (atomic store), so this is safe
+    /// to call from the main thread during playback.
+    func updateEffectParameter(
+        for sample: EffectableAudioSample,
+        effectInstanceId: UUID,
+        parameterId: String,
+        value: Float
+    ) {
+        let key = poolKey(for: sample)
+        guard let pool = voicePools[key] else { return }
+
+        for voice in pool.voices {
+            voice.setParameter(
+                effectInstanceId: effectInstanceId,
+                parameterId: parameterId,
+                value: value
+            )
+        }
     }
 }

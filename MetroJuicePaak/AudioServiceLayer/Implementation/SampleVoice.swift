@@ -97,45 +97,47 @@ final class SampleVoice {
         guard let format = connectionFormat else {
             throw SampleVoiceError.notLoaded
         }
-
+        
         // 1. Tear down the existing chain.
         disconnectAndDetachCurrentChain()
-
+        
         // 2. Construct fresh live effects and their AU wrappers for each
         //    descriptor entry.
         var newEffects: [DSPEffect] = []
         var newUnits: [AVAudioUnit] = []
         var newLookup: [UUID: DSPEffect] = [:]
-
+        
+        print("🔧 Rebuild: chain has \(chain.effects.count) descriptor entries")
         for instance in chain.effects {
+            print("🔧   processing descriptor: \(instance.effectIdentifier)")
             guard let effect = registry.make(identifier: instance.effectIdentifier) else {
-                // An identifier in the descriptor doesn't exist in the registry.
-                // Could happen after removing an effect type between project saves.
-                // Skip this entry and continue; log in real code.
+                print("🔧   ❌ registry.make returned nil for \(instance.effectIdentifier)")
                 continue
             }
-
-            // Apply stored parameter values before the effect starts rendering.
-            // These go into the live effect's atomics so that when prepare and
-            // process run later, the smoothed-from values start at the stored ones.
+            print("🔧   ✅ registry made effect: \(type(of: effect))")
+            
             for (parameterId, value) in instance.parameterValues {
                 effect.setParameter(id: parameterId, value: value)
             }
-
-            // Wrap into an engine-attachable AVAudioUnit via the bridge.
-            let auUnit = try await bridge.makeAVAudioUnit(for: effect)
-
-            engine.attach(auUnit)
-
-            newEffects.append(effect)
-            newUnits.append(auUnit)
-            newLookup[instance.id] = effect
+            
+            do {
+                let auUnit = try await bridge.makeAVAudioUnit(for: effect)
+                print("🔧   ✅ AU wrapped: \(auUnit)")
+                engine.attach(auUnit)
+                newEffects.append(effect)
+                newUnits.append(auUnit)
+                newLookup[instance.id] = effect
+            } catch {
+                print("🔧   ❌ bridge.makeAVAudioUnit threw: \(error)")
+                throw error
+            }
         }
-
+        print("🔧 Rebuild: newUnits count = \(newUnits.count)")
+        
         self.liveEffects = newEffects
         self.effectUnits = newUnits
         self.effectsByInstanceId = newLookup
-
+        
         // 3. Wire player -> effects in series -> main mixer.
         var previous: AVAudioNode = playerNode
         for unit in newUnits {
@@ -143,11 +145,22 @@ final class SampleVoice {
             previous = unit
         }
         engine.connect(previous, to: engine.mainMixerNode, format: format)
-
+        
         // 4. The engine will call allocateRenderResources on each new AU
         //    on its own when it next prepares for rendering, which triggers
         //    prepare() on each DSPEffect and allocates their live state.
         //    If the engine is already running, this happens immediately.
+        // ====== ADD FROM HERE ======
+        print("🔧 === GRAPH AFTER REBUILD ===")
+        print("🔧 Player output connections: \(engine.outputConnectionPoints(for: playerNode, outputBus: 0))")
+        for (i, unit) in newUnits.enumerated() {
+            print("🔧 Effect \(i) (\(type(of: unit.auAudioUnit))):")
+            print("🔧   outputs: \(engine.outputConnectionPoints(for: unit, outputBus: 0))")
+        }
+        print("🔧 Engine running: \(engine.isRunning)")
+        print("🔧 === END GRAPH ===")
+        // ====== TO HERE ======
+        
     }
 
     /// Detach the voice from the engine entirely. Called when the refcount
