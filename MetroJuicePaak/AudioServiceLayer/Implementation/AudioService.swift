@@ -82,7 +82,7 @@ class AudioService: AudioServiceProtocol {
     }
     
     func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval) {
-        return
+        audioEngine.scheduleAt(sample: sample, time: time)
     }
 
     func stop(_ sample: PlayableAudioSample) async {

@@ -50,7 +50,7 @@ protocol PlayableAudioSample: AnyObject {
 ///
 /// Used by mixer UIs that need to adjust volume and pan without exposing
 /// trim, effect, or playback concerns.
-protocol MixableAudioSample {
+protocol MixableAudioSample: AnyObject {
     var url: URL { get }
     var volume: Double { get set }
     var pan: Double { get set }

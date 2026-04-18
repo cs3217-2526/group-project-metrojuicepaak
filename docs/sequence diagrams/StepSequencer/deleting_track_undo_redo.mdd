@@ -20,9 +20,9 @@ sequenceDiagram
         activate Cmd
         
         note right of Cmd: Command uses its internal trackBackup
-        Cmd->>VM: restoreTrack(trackBackup)
+        Cmd->>VM: insertTrack(trackBackup, at: originalIndex)
         
-        VM->>VM: Insert backup track into dictionary
+        VM->>VM: Insert backup track into array
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
@@ -44,9 +44,9 @@ sequenceDiagram
         URM->>Cmd: execute()
         activate Cmd
         
-        Cmd->>VM: removeTrack(at: trackId)
+        Cmd->>VM: removeTrack(id: trackId)
         
-        VM->>VM: Remove track from dictionary
+        VM->>VM: Remove track from array
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         

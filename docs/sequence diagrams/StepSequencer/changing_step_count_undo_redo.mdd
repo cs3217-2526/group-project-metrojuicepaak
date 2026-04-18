@@ -1,0 +1,60 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as StepSequencerView
+    participant VM as StepSequencerViewModel
+    participant URM as UndoRedoManager
+    participant Cmd as ChangeStepCountCommand
+    participant Engine as MusicEngine
+
+    %% INITIAL EXECUTION
+    note right of User: INITIAL EXECUTION (Applies Algorithm)
+    User->>View: Selects new size from Menu (e.g., 32)
+    View->>VM: executeChangeStepCount(to: 32)
+    activate VM
+    
+    note right of VM: Backs up all current track arrays to a dictionary
+    VM->>Cmd: init(oldStepCount, newCount, oldSteps, viewModel)
+    VM->>URM: execute(command)
+    activate URM
+    
+    URM->>Cmd: execute()
+    activate Cmd
+    Cmd->>VM: setStepCount(newStepCount)
+    
+    VM->>VM: Run stretch/compress algorithm on tracks
+    VM->>VM: Update stepCount & bound check currentStep
+    VM->>VM: publishSnapshot()
+    VM->>Engine: apply(snapshot: SequencerSnapshot)
+    
+    URM->>URM: push to undoStack
+    deactivate Cmd
+    deactivate URM
+    deactivate VM
+
+    %% UNDO ACTION
+    rect rgb(30, 40, 50)
+        note right of User: UNDO ACTION (Bypasses Algorithm)
+        User->>View: Taps Undo Button
+        View->>VM: undo()
+        activate VM
+        VM->>URM: undo()
+        activate URM
+        
+        URM->>URM: pop from undoStack
+        URM->>Cmd: undo()
+        activate Cmd
+        
+        note right of Cmd: Passes the dictionary backup down to the ViewModel
+        Cmd->>VM: setStepCount(oldStepCount, stepBackups: oldSteps)
+        
+        VM->>VM: Bypass algorithm & restore exact arrays from backup
+        VM->>VM: Update stepCount & bound check currentStep
+        VM->>VM: publishSnapshot()
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+        
+        URM->>URM: push to redoStack
+        deactivate Cmd
+        deactivate URM
+        deactivate VM
+    end
