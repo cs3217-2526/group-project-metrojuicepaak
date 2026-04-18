@@ -47,6 +47,20 @@
 			);
 			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
 		};
+		E660A6172F941D8200ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
+		};
+		E660A6192F941D8400ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -60,6 +74,10 @@
 		};
 		57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E660A6192F941D8400ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
+				E660A6172F941D8200ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
+			);
 			path = MetroJuicePaakTests;
 			sourceTree = "<group>";
 		};
@@ -511,13 +529,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -533,13 +552,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -556,10 +576,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -576,10 +596,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

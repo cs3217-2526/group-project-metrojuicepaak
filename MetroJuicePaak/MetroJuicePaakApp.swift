@@ -38,15 +38,24 @@ struct MetroJuicePaakApp: App {
             let repository = AudioSampleRepository()
             print("🎙️ 2. Repository created successfully.")
             
-            // If the console stops here, the bug is inside your teammate's AudioService init!
-            let audioService = try await AudioService()
+            let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+            let audioService: AudioServiceProtocol
+            
+            if isUITesting {
+                print("⚠️ UI TESTING MODE DETECTED: USING MOCK AUDIO SERVICE")
+                audioService = MockAudioService()
+            } else {
+                print("🎤 NORMAL MODE: USING REAL AUDIO SERVICE")
+                audioService = try await AudioService()
+            }
+            
             print("🎙️ 3. AudioService created successfully.")
             
             let waveformGenerator = WaveformCache()
             
             let viewModel = SamplerViewModel(
                 repository: repository,
-                audioService: audioService,
+                audioService: audioService, 
                 waveformGenerator: waveformGenerator
             )
             print("🎙️ 4. Orchestrator built successfully.")

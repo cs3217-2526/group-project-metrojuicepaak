@@ -18,9 +18,11 @@ class SamplerPadViewModel {
     let sampleID: ObjectIdentifier
     
     /// A segregated view of the repository, restricted to reading display names and waveform parameters.
+    @ObservationIgnored
     private let repository: ReadableAudioSampleRepository & WaveformSourceAudioSampleRepository
     
     /// The math engine (typically a `WaveformCache` actor) responsible for crunching audio frames into visual data.
+    @ObservationIgnored
     private let generator: WaveformGenerationService
     
     // MARK: - Render State
