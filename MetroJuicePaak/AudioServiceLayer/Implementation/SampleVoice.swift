@@ -28,12 +28,12 @@ final class SampleVoice {
 
     /// The player node for this sample. Attached to the engine for the
     /// voice's lifetime. Scheduled with the audio file on start().
-    let playerNode: AVAudioPlayerNode
+    private let playerNode: AVAudioPlayerNode
 
     /// The audio file this voice plays. Read from disk in loadFile().
     private var audioFile: AVAudioFile?
     
-    // 🟢 The Master RAM Storage
+    //  The Master RAM Storage
     private var masterBuffer: AVAudioPCMBuffer?
 
     /// The current chain's live effects, in order. Parallel to `effectUnits`.
@@ -70,15 +70,6 @@ final class SampleVoice {
     }
 
     // MARK: - Lifecycle
-
-    /// Load the audio file and attach the player node to the engine.
-    /// Called once when the voice is first constructed.
-//    func loadFile(from url: URL) throws {
-//        let file = try AVAudioFile(forReading: url)
-//        self.audioFile = file
-//        engine.attach(playerNode)
-//        self.connectionFormat = file.processingFormat
-//    }
     /// Load the audio file and attach the player node to the engine.
     /// Called once when the voice is first constructed.
     func loadFile(from url: URL) throws {
@@ -177,56 +168,28 @@ final class SampleVoice {
 
     // MARK: - Playback
 
-//    func start() {
-//        guard let file = audioFile else { return }
-//        // Schedule the file from the beginning. For retrigger scenarios
-//        // you'd stop the player first; for overlapping playback you'd need
-//        // a pool of player nodes (not covered here).
-//        playerNode.stop()
-//        playerNode.scheduleFile(file, at: nil, completionHandler: nil)
-//        if !engine.isRunning {
-//            try? engine.start()
-//        }
-//        playerNode.play()
-//    }
-    // MARK: - CHANGES TO NOTE:
-
-    /// Schedules and begins playback of the audio file, physically trimming the audio buffer
-    /// to respect the provided start and end ratios.
+    /// Schedules playback of the loaded sample at a precise hardware timestamp,
+    /// with optional trim. Used by the sequencer's lookahead scheduler to line
+    /// up step triggers against the audio clock.
     ///
-    /// **Architecture Update:**
-    /// Previously, `SampleVoice` scheduled the entire `AVAudioFile` blindly, which caused
-    /// playback to ignore UI-level trim edits. By accepting normalized ratios from the Engine,
-    /// this method translates abstract domain values (`0.0` to `1.0`) into physical hardware
-    /// `AVAudioFramePosition` frames.
+    /// Any playback currently in progress on this voice is cancelled when the
+    /// new buffer is scheduled (`.interrupts`). If the engine is not yet running,
+    /// it is started lazily on first trigger.
     ///
     /// - Parameters:
-    ///   - startTimeRatio: The normalized start point of the trimmed region. Defaults to 0.0 (beginning).
-    ///   - endTimeRatio: The normalized end point of the trimmed region. Defaults to 1.0 (end).
-    /// - Note: Uses `scheduleSegment` instead of `scheduleFile` to physically crop the buffer
-    ///         before it reaches the engine. Includes a safety guard to prevent `AVAudioEngine`
-    ///         from crashing if the trimmed frame count resolves to 0.
-//    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
-//        guard let file = audioFile else { return }
-//        playerNode.stop()
-//        
-//        let totalFrames = file.length
-//        let startFrame = AVAudioFramePosition(Double(totalFrames) * startTimeRatio)
-//        let frameCount = AVAudioFrameCount(Double(totalFrames) * (endTimeRatio - startTimeRatio))
-//        
-//        // Safety check to prevent engine crashes on zero-length frames
-//        if frameCount > 0 {
-//            playerNode.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil, completionHandler: nil)
-//        }
-//        
-//        if !engine.isRunning {
-//            try? engine.start()
-//        }
-//        playerNode.play()
-//    }
-    // MARK: - CHANGES TO NOTE ^ ^
-    
-    /// Schedules and begins playback at an exact hardware timestamp using RAM.
+    ///   - time: Absolute host-clock time (seconds) at which rendering of the
+    ///     first frame should begin. Typically a near-future timestamp produced
+    ///     by the sequencer's scheduler.
+    ///   - startTimeRatio: Normalised start of the trimmed region, in [0, 1].
+    ///     Defaults to 0 (sample start).
+    ///   - endTimeRatio: Normalised end of the trimmed region, in [0, 1].
+    ///     Defaults to 1 (sample end).
+    ///
+    /// - Note: The trim is realised by slicing the master PCM buffer (held in
+    ///   RAM since ``loadFile(from:)``) into a fresh cropped buffer per call.
+    ///   When the ratios are the defaults 0 / 1, the master buffer is scheduled
+    ///   directly with no copy (fast path). A zero-length trim is silently
+    ///   dropped, as ``AVAudioEngine`` raises on an empty buffer.
     func start(at time: TimeInterval, startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
         playerNode.stop()
         
@@ -244,6 +207,18 @@ final class SampleVoice {
         playerNode.play()
     }
 
+    /// Schedules immediate playback of the loaded sample, with optional trim.
+    /// Used by the sampler pads for zero-latency response to taps.
+    ///
+    /// Behaviourally identical to ``start(at:startTimeRatio:endTimeRatio:)``
+    /// but without a scheduled start time — the buffer plays as soon as the
+    /// engine's render cycle consumes it. Use the timestamped overload when
+    /// you need to align playback against a shared clock (the sequencer);
+    /// use this one when "now" is good enough (pad taps).
+    ///
+    /// - Parameters:
+    ///   - startTimeRatio: Normalised start of the trimmed region, in [0, 1].
+    ///   - endTimeRatio: Normalised end of the trimmed region, in [0, 1].
     /// Immediate playback for the Sampler pads
     func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
         playerNode.stop()
@@ -255,7 +230,19 @@ final class SampleVoice {
         playerNode.play()
     }
     
-    // MARK: - RAM Buffer Slicing (The Industry Secret)
+    func setVolume(_ volume: Float) {
+        self.playerNode.volume = volume
+    }
+    
+    func setPan(_ pan: Float) {
+        self.playerNode.pan = pan
+    }
+    
+    var isPlaying: Bool {
+        self.playerNode.isPlaying
+    }
+    
+    // MARK: - RAM Buffer Slicing
 
     /// Safely copies the exact frames needed from the master buffer into a temporary playback buffer.
     private func getTrimmedBuffer(startTimeRatio: Double, endTimeRatio: Double) -> AVAudioPCMBuffer? {
@@ -289,7 +276,6 @@ final class SampleVoice {
         
         return croppedBuffer
     }
-    // MARK: - CHANGES TO NOTE ^ ^ (FROM EDWIN)
 
     func stop() {
         playerNode.stop()
