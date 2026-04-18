@@ -1,5 +1,5 @@
 //
-//  SampleEditorView.swift
+//  SamplerEditorView.swift
 //  MetroJuicePaak
 //
 //  Created by Noah Ang Shi Hern on 18/4/26.
@@ -7,12 +7,14 @@
 
 import SwiftUI
 
-struct SampleEditorView: View {
+/// The sample editor modal — hosts both the trim and effects modes.
+/// The mode toggle is local UI state, not externally observable.
+struct SamplerEditorView: View {
 
-    @Binding var editorMode: SampleEditorMode
-    let waveformViewModel: WaveformEditorViewModel
+    let editorViewModel: SamplerEditorViewModel
     let effectsViewModel: EffectChainEditorViewModel
 
+    @State private var editorMode: SampleEditorMode = .trim
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -21,7 +23,7 @@ struct SampleEditorView: View {
             // MARK: - Toolbar
             HStack {
                 Button("Cancel") {
-                    waveformViewModel.cancelEdits()
+                    editorViewModel.cancelEdits()
                     dismiss()
                 }
                 .foregroundColor(.red)
@@ -31,7 +33,7 @@ struct SampleEditorView: View {
                 Spacer()
 
                 Button("Save") {
-                    waveformViewModel.saveEdits()
+                    editorViewModel.saveEdits()
                     dismiss()
                 }
                 .bold()
@@ -40,7 +42,7 @@ struct SampleEditorView: View {
 
             // MARK: - Mode Toggle
             Picker("Editor Mode", selection: $editorMode) {
-                ForEach(SampleEditorMode.allCases, id: \.self) { mode in
+                ForEach(SampleEditorMode.allCases) { mode in
                     Text(mode.rawValue).tag(mode)
                 }
             }
@@ -50,8 +52,7 @@ struct SampleEditorView: View {
             // MARK: - Content Area
             switch editorMode {
             case .trim:
-                WaveformTrimContent(viewModel: waveformViewModel)
-
+                WaveformTrimContent(viewModel: editorViewModel)
             case .effects:
                 EffectsContent(viewModel: effectsViewModel)
             }
@@ -59,4 +60,15 @@ struct SampleEditorView: View {
             Spacer()
         }
     }
+}
+
+// MARK: - Mode Enum
+
+/// Local UI state for which editor mode is active. Not externally observed
+/// because no caller needs to read or set the mode from outside the modal.
+enum SampleEditorMode: String, CaseIterable, Identifiable {
+    case trim = "Trim"
+    case effects = "Effects"
+
+    var id: String { rawValue }
 }

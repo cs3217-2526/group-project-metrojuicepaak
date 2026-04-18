@@ -13,7 +13,7 @@ struct MetroJuicePaakApp: App {
     @State private var samplerOrchestrator: SamplerViewModel?
     @State private var sequencerViewModel: StepSequencerViewModel?
     @State private var initializationError: Error?
-
+    
     var body: some Scene {
         WindowGroup {
             Group {
@@ -34,65 +34,70 @@ struct MetroJuicePaakApp: App {
             }
         }
     }
-
+    
     @MainActor
     private func initializeAudio() async {
         print("🎙️ 1. Starting audio initialization...")
         do {
             let repository = AudioSampleRepository()
-            print("🎙️ 2. Repository created successfully.")
+            print("🎙️ 2. Repository created.")
 
-            // Bootstrap the effect registry and register every built-in DSP effect.
-            // The same instance is shared by AudioService (for instantiating live
-            // effects on the audio thread) and SamplerViewModel (for browsing
-            // effect metadata in the UI). Single source of truth.
             let effectRegistry = EffectRegistry()
             AppBootstrap.registerBuiltInEffects(into: effectRegistry)
             print("🎙️ 3. Effect registry populated with \(effectRegistry.allMetadata().count) effects.")
 
-            // Register the AU subclass with the AudioComponentManager exactly once.
-            // Required before any call to AVAudioUnit.instantiate.
             DSPEffectAUBridge.registerOnce()
-            print("🎙️ 4. DSPEffectAUBridge registered with AudioComponentManager.")
+            print("🎙️ 4. DSPEffectAUBridge registered.")
 
             let audioService = try await AudioService(registry: effectRegistry)
-            print("🎙️ 5. AudioService created successfully.")
+            print("🎙️ 5. AudioService created.")
 
             let waveformGenerator = WaveformCache()
- 
-            let avEngine = AVAudioEngine()
-            
-            let timeProvider = AudioTimeProvider(audioEngine: avEngine)
-            
-            let musicEngine = MusicEngineImplementation(audioPlaybackService: audioService, timeProvider: timeProvider)
-            
-            // Initialize Sampler
-            let samplerVM = SamplerViewModel(
+            print("🎙️ 6. Waveform generator created.")
+
+            // Build the factory that knows how to construct editor view models.
+            // Everything after this doesn't need to see effectRegistry anymore.
+            let editorFactory = EditorViewModelFactory(
                 repository: repository,
                 audioService: audioService,
                 waveformGenerator: waveformGenerator,
                 effectRegistry: effectRegistry
             )
-            print("🎙️ 4. Sampler Orchestrator built successfully.")
-            
-            // Initialize Step Sequencer
-            // AudioService acts as the MusicEngine, Repository acts as ReadableAudioSampleRepository
+            print("🎙️ 7. Editor view model factory built.")
+
+            let avEngine = AVAudioEngine()
+            let timeProvider = AudioTimeProvider(audioEngine: avEngine)
+            let musicEngine = MusicEngineImplementation(
+                audioPlaybackService: audioService,
+                timeProvider: timeProvider
+            )
+
+            let samplerVM = SamplerViewModel(
+                repository: repository,
+                audioService: audioService,
+                editorFactory: editorFactory,
+                padViewModelGenerator: waveformGenerator
+            )
+            print("🎙️ 8. Sampler orchestrator built.")
+
             let sequencerVM = StepSequencerViewModel(
                 repository: repository,
                 musicEngine: musicEngine
             )
-            print("🎙️ 5. Step Sequencer ViewModel built successfully.")
-            
+            print("🎙️ 9. Step Sequencer ViewModel built.")
+
             self.samplerOrchestrator = samplerVM
             self.sequencerViewModel = sequencerVM
-            print("🎙️ 6. State updated! Switching to TabView.")
-            
+            print("🎙️ 10. State updated! Switching to TabView.")
+
         } catch {
             self.initializationError = error
             print("🛑 Initialization failed: \(error.localizedDescription)")
         }
     }
 }
+
+   
 
 // MARK: - Effect Bootstrap
 
