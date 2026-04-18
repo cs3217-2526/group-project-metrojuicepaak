@@ -38,11 +38,12 @@ enum DSPEffectAUBridge {
     }
 }
 
+/// Ugly but necessary for AVAudioUnit's instantiate
 enum PendingEffect {
     static var next: DSPEffect?
 }
 
-//Helper
+// MARK: - Private Helpers
 
 func fourCC(_ string: String) -> UInt32 {
     let chars = Array(string.utf8)

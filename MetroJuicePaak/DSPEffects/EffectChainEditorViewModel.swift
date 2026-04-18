@@ -12,9 +12,9 @@ final class EffectChainEditorViewModel {
 
     private let effectable: EffectableAudioSample
     private let playable: PlayableAudioSample
+    private let audioService: AudioServiceProtocol
     private let registry: EffectRegistry
-    private let liveChainService: LiveEffectChainService
-    private let audioService: AudioPlaybackService
+
 
     var isPlayingPreview: Bool = false
     
@@ -34,9 +34,9 @@ final class EffectChainEditorViewModel {
 
     init?(sampleId: ObjectIdentifier,
           repository: EffectableAudioSampleRepository & ReadableAudioSampleRepository,
+          audioService: AudioServiceProtocol,
           registry: EffectRegistry,
-          liveChainService: LiveEffectChainService,
-          audioService: AudioPlaybackService) {
+) {
 
         guard let effectable = repository.getEffectableSample(for: sampleId),
               let playable = repository.getPlayableSample(for: sampleId) else {
@@ -45,7 +45,6 @@ final class EffectChainEditorViewModel {
         self.effectable = effectable
         self.playable = playable
         self.registry = registry
-        self.liveChainService = liveChainService
         self.audioService = audioService
     }
     
@@ -77,22 +76,22 @@ final class EffectChainEditorViewModel {
         try effectable.addEffect(descriptor)
 
         // 2. Engine reads the updated chain from the sample directly.
-        try await liveChainService.rebuildEffectChain(for: effectable)
+        try await audioService.rebuildEffectChain(for: effectable)
     }
 
     func removeEffect(instanceId: UUID) async throws {
         effectable.removeEffect(instanceId: instanceId)
-        try await liveChainService.rebuildEffectChain(for: effectable)
+        try await audioService.rebuildEffectChain(for: effectable)
     }
 
     func moveEffect(from: Int, to: Int) async throws {
         effectable.moveEffect(from: from, to: to)
-        try await liveChainService.rebuildEffectChain(for: effectable)
+        try await audioService.rebuildEffectChain(for: effectable)
     }
 
     func toggleBypass(instanceId: UUID) async throws {
         effectable.toggleBypass(instanceId: instanceId)
-        try await liveChainService.rebuildEffectChain(for: effectable)
+        try await audioService.rebuildEffectChain(for: effectable)
     }
 
     // MARK: - Live parameter updates
@@ -100,7 +99,7 @@ final class EffectChainEditorViewModel {
     func setParameterLive(effectInstanceId: UUID,
                           parameterId: String,
                           value: Float) {
-        liveChainService.updateEffectParameter(
+        audioService.updateEffectParameter(
             for: effectable,
             effectInstanceId: effectInstanceId,
             parameterId: parameterId,
@@ -108,6 +107,7 @@ final class EffectChainEditorViewModel {
         )
     }
 
+    /// To save edits to the actual AudioSample
     func commitParameter(effectInstanceId: UUID,
                          parameterId: String,
                          value: Float) {
