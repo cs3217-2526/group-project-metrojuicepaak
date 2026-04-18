@@ -15,7 +15,7 @@ class StepSequencerViewModel {
     
     let repository: ReadableAudioSampleRepository
     private let musicEngine: MusicEngine
-    private let undoRedoManager = UndoRedoManager()
+    let undoRedoManager = UndoRedoManager()
     
     var isPlaying: Bool = false
     var currentStep: Int = 0
