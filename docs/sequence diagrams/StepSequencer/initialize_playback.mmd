@@ -13,16 +13,13 @@ sequenceDiagram
     
     VM->>VM: isPlaying = true
     
-    %% Publish initial state
-    VM->>VM: publishSnapshot()
-    VM->>Engine: apply(snapshot: SequencerSnapshot)
-    
-    %% Ignite the engine
+    %% Ignite the engine and UI metronome
     VM->>Engine: startSequencer()
     activate Engine
+    VM->>VM: startVisualPlayhead()
     
     %% Kick off the background loop
-    Engine->>Thread: Start lookahead loop
+    Engine->>Thread: Start lookahead timer (DispatchSourceTimer)
     
     Engine-->>VM: (Sequencer Running)
     deactivate Engine
@@ -30,8 +27,8 @@ sequenceDiagram
     
     %% The Continuous Scheduling Loop
     note right of Thread: BACKGROUND LOOKAHEAD LOOP
-    loop Every interval (e.g., 50ms)
-        Thread->>Engine: Read latest snapshot (Lock-Free)
+    loop Every 50ms interval
+        Thread->>Engine: Read latest snapshot (OSAllocatedUnfairLock)
         note right of Thread: Snapshot contains `bpm` and `tracks` dictionary
         
         loop For each track in snapshot.tracks
@@ -39,9 +36,9 @@ sequenceDiagram
                 Thread->>Thread: Find active steps within the next 100ms window
                 
                 loop For each active step
-                    Thread->>Thread: Convert stepIndex & snapshot.bpm into AVAudioTime
-                    Thread->>AS: scheduleAt(sample: AudioSample, time: AVAudioTime)
-                    note right of AS: AudioService safely queues the sample on the hardware thread
+                    Thread->>Thread: Calculate targetTime (TimeInterval in seconds)
+                    Thread->>AS: scheduleAt(sample: sample, time: targetTime)
+                    note right of AS: AudioService routes to SampleVoice for RAM slicing & AVAudioTime conversion
                 end
                 
             else If track.sample IS nil
