@@ -19,10 +19,10 @@ sequenceDiagram
         URM->>Cmd: undo()
         activate Cmd
         
-        note right of Cmd: Uses internal sampleBackup to restore audio payload
-        Cmd->>VM: assignSampleToTrack(trackId: trackId, sample: sampleBackup)
+        note right of Cmd: Uses internal sampleIDBackup to restore reference
+        Cmd->>VM: assignSampleToTrack(trackId: trackId, sampleID: sampleIDBackup)
         
-        VM->>VM: Set track.sample = sampleBackup
+        VM->>VM: Set track.sampleID = sampleIDBackup
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
@@ -46,7 +46,7 @@ sequenceDiagram
         
         Cmd->>VM: removeSampleFromTrack(trackId: trackId)
         
-        VM->>VM: Set track.sample = nil
+        VM->>VM: Set track.sampleID = nil
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
