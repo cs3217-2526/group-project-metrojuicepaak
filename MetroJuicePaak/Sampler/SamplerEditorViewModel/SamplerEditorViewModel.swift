@@ -3,14 +3,9 @@ import Observation
 
 /// Manages the transient state and business logic for the Waveform Editor modal.
 ///
-/// `WaveformEditorViewModel` acts as a "Memento" or sandbox for audio trimming.
-/// It captures the initial state of an audio sample upon creation and allows the UI
-/// to freely manipulate temporary trim ratios (`tempStartRatio` and `tempEndRatio`).
-/// These edits can be safely previewed and are only permanently committed to the
-/// underlying domain model if the user explicitly saves them.
-///
+/// Fix this documentation 
 @Observable
-class WaveformEditorViewModel {
+class SamplerEditorViewModel {
     
     /// The unique memory address of the audio sample being edited.
     let sampleID: ObjectIdentifier
@@ -67,7 +62,8 @@ class WaveformEditorViewModel {
     ///   - generator: The service used to render the high-resolution waveform.
     /// - Returns: `nil` if the sample no longer exists or if the repository cannot resolve all required views.
     init?(sampleID: ObjectIdentifier,
-          repository: ReadableAudioSampleRepository & EditableAudioSampleRepository & WaveformSourceAudioSampleRepository,
+          repository: ReadableAudioSampleRepository & EditableAudioSampleRepository & WaveformSourceAudioSampleRepository &
+              EffectableAudioSampleRepository,
           audioService: AudioServiceProtocol,
           generator: WaveformGenerationService) {
         
@@ -153,18 +149,28 @@ class WaveformEditorViewModel {
     /// - Note: To allow the engine to play the exact segment the user is viewing, this method
     ///         temporarily pushes the transient slider values down to the domain model before
     ///         calling `play`.
+    @ObservationIgnored private var previewGeneration: Int = 0
+
     func togglePreview() async {
         if isPlayingPreview {
             await audioService.stop(playable)
             isPlayingPreview = false
         } else {
-            isPlayingPreview = true
             do {
                 try editable.setStartTimeRatio(tempStartRatio)
                 try editable.setEndTimeRatio(tempEndRatio)
-                await audioService.play(playable)
             } catch {
-                print("Failed to preview edits: \(error)")
+                print("Failed to apply preview trim: \(error)")
+                return
+            }
+
+            previewGeneration += 1
+            let thisGeneration = previewGeneration
+            isPlayingPreview = true
+
+            await audioService.play(playable) { [weak self] in
+                guard let self, self.previewGeneration == thisGeneration else { return }
+                self.isPlayingPreview = false
             }
         }
     }

@@ -36,6 +36,7 @@ struct SamplerView: View {
                     // Conditionally renders a high-visibility warning when the microphone is active.
                     if orchestrator.isRecordingPadIndex != nil {
                         Text("🎙️ Recording...")
+                            .accessibilityIdentifier("RecordingIndicator")
                             .foregroundStyle(.red)
                             .font(.headline)
                     }
@@ -46,8 +47,10 @@ struct SamplerView: View {
                     Toggle("Edit Mode", isOn: $orchestrator.isEditMode)
                         .toggleStyle(.button)
                         .tint(.orange)
+                        .accessibilityIdentifier("EditModeToggle")
                 }
                 .padding(.horizontal)
+                
             }
             .frame(height: 60)
             .frame(maxWidth: .infinity)
@@ -92,7 +95,7 @@ struct SamplerView: View {
         
         // 1. Waveform Editor Modal
         .sheet(item: $orchestrator.sampleIDToEdit) { context in
-            WaveformEditorContainer(orchestrator: orchestrator, sampleID: context.id)
+            SamplerEditorContainer(orchestrator: orchestrator, sampleID: context.id)
         }
         
         // 2. Sample Picker Modal
