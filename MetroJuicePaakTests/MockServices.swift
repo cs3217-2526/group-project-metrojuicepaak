@@ -67,30 +67,12 @@ final class MockAudioService: AudioServiceProtocol, LiveEffectChainService {
     func setMasterVolume(_ volume: Float) { self.masterVolume = volume }
     func setDuckingEnabled(_ enabled: Bool) { self.isDuckingEnabled = enabled }
     
-    func setDuckingEnabled(_ enabled: Bool) {
-        self.isDuckingEnabled = enabled
-    }
     // MARK: - AudioPlaybackService  Conformance
         
-    // A dummy host time for testing the sequencer logic
-    var currentHostTime: TimeInterval {
-        return Date().timeIntervalSince1970
-    }
-    
     func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval,
                     onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         // Record that it was scheduled so we can assert it in our tests
         self.lastPlayedSample = sample
-    }
-    
-    func isLoaded(_ sample: PlayableAudioSample) -> Bool {
-        // For our unit tests, we'll assume samples are successfully loaded
-        return true
-    }
-    
-    func isPlaying(_ sample: PlayableAudioSample) -> Bool {
-        // Simple dummy logic: it's playing if it was the last thing played and stop wasn't called
-        return lastPlayedSample?.url == sample.url && !stopCalled
     }
     
     func rebuildEffectChain(for sample: EffectableAudioSample) async throws {
