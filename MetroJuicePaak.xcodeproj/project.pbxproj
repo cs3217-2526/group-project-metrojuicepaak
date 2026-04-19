@@ -46,6 +46,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"class diagrams/ClassDiagramSampler&SamplerEditor.svg",
+				"class diagrams/ClassDiagramStepSequencer.svg",
 				"sequence diagrams/Sampler/AudioRecording&IngestionPipeline.svg",
 				"sequence diagrams/Sampler/FactoryDelegationPattern.svg",
 				"sequence diagrams/Sampler/SamplerEditor&PreviewLoop.svg",
