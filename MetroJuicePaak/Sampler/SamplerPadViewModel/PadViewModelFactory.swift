@@ -5,8 +5,7 @@
 //  Created by Noah Ang Shi Hern on 19/4/26.
 //
 
-
-final class PadViewModelFactory {
+ class PadViewModelFactory {
     typealias Repository = ReadableAudioSampleRepository
                          & WaveformSourceAudioSampleRepository
 

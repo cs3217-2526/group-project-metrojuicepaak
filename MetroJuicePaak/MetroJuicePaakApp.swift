@@ -69,6 +69,8 @@ struct MetroJuicePaakApp: App {
                 effectRegistry: effectRegistry
             )
             
+            let padFactory = PadViewModelFactory(repository: repository, waveformService: mockWaveformGenerator)
+            
             // We use the real MusicEngine but feed it the MockAudioService
             // so it never touches the real hardware AV layer
             let avEngine = AVAudioEngine()
@@ -82,7 +84,7 @@ struct MetroJuicePaakApp: App {
                 repository: repository,
                 audioService: mockAudioService,
                 editorFactory: editorFactory,
-                padViewModelGenerator: mockWaveformGenerator
+                padFactory: padFactory
             )
             
             self.sequencerViewModel = StepSequencerViewModel(
@@ -199,3 +201,4 @@ struct ErrorView: View {
         .padding()
     }
 }
+

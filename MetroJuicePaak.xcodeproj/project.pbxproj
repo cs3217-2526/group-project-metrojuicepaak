@@ -10,7 +10,8 @@
 		57B260262F6927DC00D45B43 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 57B260252F6927DC00D45B43 /* README.md */; };
 		57B260282F6928AA00D45B43 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 57B260272F6928A100D45B43 /* .gitignore */; };
 		57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 57B260352F6E840E00D45B43 /* swiftlint.yml */; };
-		57C57E6B2F94BFFD00CE09EB /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = 57C57E6A2F94BFFD00CE09EB /* Atomics */; };
+		E6204A412F9516CD009C254E /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = E6204A402F9516CD009C254E /* Atomics */; };
+		E6204A432F9516E1009C254E /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = E6204A422F9516E1009C254E /* Atomics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,26 +42,35 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E6204A392F950E2E009C254E /* Exceptions for "docs" folder in "MetroJuicePaak" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"sequence diagrams/Sampler/AudioRecording&IngestionPipeline.svg",
+				"sequence diagrams/Sampler/FactoryDelegationPattern.svg",
+				"sequence diagrams/Sampler/SamplerEditor&PreviewLoop.svg",
+			);
+			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
+		};
+		E6204A452F95170A009C254E /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
+		};
+		E6204A462F95170A009C254E /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
+		};
 		E646FFA72F71E1A700C1C484 /* Exceptions for "MetroJuicePaak" folder in "MetroJuicePaak" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
-		};
-		E660A9842F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				MockServices.swift,
-			);
-			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
-		};
-		E660A9852F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				MockServices.swift,
-			);
-			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -76,8 +86,8 @@
 		57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				E660A9842F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
-				E660A9852F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
+				E6204A452F95170A009C254E /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
+				E6204A462F95170A009C254E /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
 			);
 			path = MetroJuicePaakTests;
 			sourceTree = "<group>";
@@ -87,6 +97,14 @@
 			path = MetroJuicePaakUITests;
 			sourceTree = "<group>";
 		};
+		57C207942F768E8900EDF446 /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E6204A392F950E2E009C254E /* Exceptions for "docs" folder in "MetroJuicePaak" target */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,7 +112,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				57C57E6B2F94BFFD00CE09EB /* Atomics in Frameworks */,
+				E6204A432F9516E1009C254E /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,6 +120,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E6204A412F9516CD009C254E /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +137,7 @@
 		57B25FD42F69263A00D45B43 = {
 			isa = PBXGroup;
 			children = (
+				57C207942F768E8900EDF446 /* docs */,
 				57E8DE9D2F7043B100DAEF28 /* claude.md */,
 				57B260352F6E840E00D45B43 /* swiftlint.yml */,
 				57B260252F6927DC00D45B43 /* README.md */,
@@ -125,7 +145,7 @@
 				57B25FDF2F69263A00D45B43 /* MetroJuicePaak */,
 				57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */,
 				57B25FF72F69263B00D45B43 /* MetroJuicePaakUITests */,
-				57C57E692F94BFFD00CE09EB /* Frameworks */,
+				E6204A3F2F9516CD009C254E /* Frameworks */,
 				57B25FDE2F69263A00D45B43 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -140,7 +160,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		57C57E692F94BFFD00CE09EB /* Frameworks */ = {
+		E6204A3F2F9516CD009C254E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -168,7 +188,7 @@
 			);
 			name = MetroJuicePaak;
 			packageProductDependencies = (
-				57C57E6A2F94BFFD00CE09EB /* Atomics */,
+				E6204A422F9516E1009C254E /* Atomics */,
 			);
 			productName = MetroJuicePaak;
 			productReference = 57B25FDD2F69263A00D45B43 /* MetroJuicePaak.app */;
@@ -192,6 +212,7 @@
 			);
 			name = MetroJuicePaakTests;
 			packageProductDependencies = (
+				E6204A402F9516CD009C254E /* Atomics */,
 			);
 			productName = MetroJuicePaakTests;
 			productReference = 57B25FEA2F69263B00D45B43 /* MetroJuicePaakTests.xctest */;
@@ -253,7 +274,7 @@
 			mainGroup = 57B25FD42F69263A00D45B43;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				57C57E682F94BFF900CE09EB /* XCRemoteSwiftPackageReference "swift-atomics" */,
+				E6204A3E2F9516B1009C254E /* XCRemoteSwiftPackageReference "swift-atomics" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 57B25FDE2F69263A00D45B43 /* Products */;
@@ -480,7 +501,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "this app needs microphone access to record audio samples for playback.";
@@ -489,13 +510,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Edwin.Noah.Vince;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -514,7 +534,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "this app needs microphone access to record audio samples for playback.";
@@ -523,13 +543,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Edwin.Noah.Vince;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -545,7 +564,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9UTRKUQYLF;
@@ -568,7 +586,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9UTRKUQYLF;
@@ -669,7 +686,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		57C57E682F94BFF900CE09EB /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+		E6204A3E2F9516B1009C254E /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-atomics.git";
 			requirement = {
@@ -680,9 +697,14 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		57C57E6A2F94BFFD00CE09EB /* Atomics */ = {
+		E6204A402F9516CD009C254E /* Atomics */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 57C57E682F94BFF900CE09EB /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			package = E6204A3E2F9516B1009C254E /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
+		};
+		E6204A422F9516E1009C254E /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6204A3E2F9516B1009C254E /* XCRemoteSwiftPackageReference "swift-atomics" */;
 			productName = Atomics;
 		};
 /* End XCSwiftPackageProductDependency section */

@@ -8,6 +8,7 @@ final class SamplerViewModelTests: XCTestCase {
     var mockRepository: AudioSampleRepository!
     var mockAudioService: MockAudioService!
     var mockGenerator: MockWaveformGenerator!
+    var mockPadFactory: PadViewModelFactory!
     var editorFactory: EditorViewModelFactory!
 
     private func createDummyAudioFile() -> URL {
@@ -24,6 +25,7 @@ final class SamplerViewModelTests: XCTestCase {
         mockRepository = AudioSampleRepository()
         mockGenerator = MockWaveformGenerator()
         mockAudioService = try await MockAudioService()
+        mockPadFactory = PadViewModelFactory(repository: mockRepository, waveformService: mockGenerator)
         
         let realRegistry = EffectRegistry()
         
@@ -38,7 +40,7 @@ final class SamplerViewModelTests: XCTestCase {
             repository: mockRepository,
             audioService: mockAudioService,
             editorFactory: editorFactory,
-            padViewModelGenerator: mockGenerator
+            padFactory: mockPadFactory
         )
     }
     
