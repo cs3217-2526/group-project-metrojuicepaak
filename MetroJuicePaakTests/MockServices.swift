@@ -1,12 +1,27 @@
 import Foundation
 
-
-// MARK: - Lightweight Mocks for Testing
 #if DEBUG
-final class MockAudioService: AudioServiceProtocol {
+
+// MARK: - Missing Registry Mock for Tests
+class MockEffectRegistry: EffectRegistry {
+    override func make(identifier: String) -> DSPEffect? {
+        return nil // Tests don't need real DSP math
+    }
+}
+
+// MARK: - Fully Conforming Audio Service Mock
+final class MockAudioService: AudioServiceProtocol, LiveEffectChainService {
+    
+    // Test Assertion Variables
     var lastPlayedSample: PlayableAudioSample?
     var stopCalled = false
     
+    // Required Async Initializer
+    required init() async throws {}
+    
+    // MARK: - AudioPlaybackService
+    var currentHostTime: TimeInterval { return Date().timeIntervalSince1970 }
+ 
     func play(_ sample: PlayableAudioSample,
               onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
         lastPlayedSample = sample
@@ -24,40 +39,33 @@ final class MockAudioService: AudioServiceProtocol {
     func load(sample: PlayableAudioSample, polyphony: Int) async throws {}
     func unload(_ sample: PlayableAudioSample) async {}
     
-    // MARK: - AudioRecordingService Conformance
+    func isLoaded(_ sample: PlayableAudioSample) -> Bool { return true }
+    func isPlaying(_ sample: PlayableAudioSample) -> Bool {
+        return lastPlayedSample?.url == sample.url && !stopCalled
+    }
     
+    // MARK: - AudioRecordingService
     var isRecording: Bool = false
     var recordingDuration: TimeInterval = 0.0
     
     func startRecording(settings: RecordingSettings?) async throws -> Bool {
-        isRecording = true
-        return true
+        isRecording = true; return true
     }
-    
     func startRecording(url: URL) async throws -> Bool {
-        isRecording = true
-        return true
+        isRecording = true; return true
     }
-    
     func stopRecording() async -> RecordingResult? {
         isRecording = false
-        // Return a dummy URL and duration for the tests
-        return RecordingResult(url: URL(fileURLWithPath: "/test/path.m4a"), duration: 1.0)
+        return RecordingResult(url: URL(fileURLWithPath: "/test.m4a"), duration: 1.0)
     }
-    // MARK: - AudioConfigurationService Conformance
-        
+    
+    // MARK: - AudioConfigurationService
     var masterVolume: Float = 1.0
     var isDuckingEnabled: Bool = false
-    var configurationCalled: Bool = false
     
-    func configureAudioSession() throws {
-        // Just record that it was called, no actual hardware configuration needed
-        configurationCalled = true
-    }
-    
-    func setMasterVolume(_ volume: Float) {
-        self.masterVolume = volume
-    }
+    func configureAudioSession() throws {}
+    func setMasterVolume(_ volume: Float) { self.masterVolume = volume }
+    func setDuckingEnabled(_ enabled: Bool) { self.isDuckingEnabled = enabled }
     
     func setDuckingEnabled(_ enabled: Bool) {
         self.isDuckingEnabled = enabled
@@ -103,18 +111,14 @@ final class MockAudioService: AudioServiceProtocol {
     }
 }
 
+// MARK: - Waveform Mock
 class MockWaveformGenerator: WaveformGenerationService {
-    
     func generateWaveform(for source: WaveformSource, resolution: Int) async -> WaveformData {
-        // 1. Generate an array of dummy floats
         let dummyAmplitudes: [Float] = (0..<resolution).map { index in
             let progress = Float(index) / Float(resolution)
             return abs(sin(progress * .pi * 6))
         }
-        
-        // 2. Return the struct using the correct 'points' parameter
         return WaveformData(points: dummyAmplitudes)
     }
 }
-
 #endif

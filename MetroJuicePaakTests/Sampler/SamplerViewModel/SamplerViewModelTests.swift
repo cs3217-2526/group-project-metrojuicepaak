@@ -1,11 +1,5 @@
-//
-//  SamplerViewModelTests.swift
-//  MetroJuicePaakTests
-//
-//  Created by proglab on 19/4/26.
-//
-
 import XCTest
+import AVFoundation
 @testable import MetroJuicePaak
 
 final class SamplerViewModelTests: XCTestCase {
@@ -14,77 +8,93 @@ final class SamplerViewModelTests: XCTestCase {
     var mockRepository: AudioSampleRepository!
     var mockAudioService: MockAudioService!
     var mockGenerator: MockWaveformGenerator!
+    var editorFactory: EditorViewModelFactory!
+
+    private func createDummyAudioFile() -> URL {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".wav")
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 1) else { return tempURL }
+        let _ = try? AVAudioFile(forWriting: tempURL, settings: format.settings)
+        return tempURL
+    }
     
     @MainActor
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
+        
         mockRepository = AudioSampleRepository()
-        mockAudioService = MockAudioService()
         mockGenerator = MockWaveformGenerator()
+        mockAudioService = try await MockAudioService()
+        
+        let realRegistry = EffectRegistry()
+        
+        editorFactory = EditorViewModelFactory(
+            repository: mockRepository,
+            audioService: mockAudioService,
+            waveformGenerator: mockGenerator,
+            effectRegistry: realRegistry
+        )
         
         orchestrator = SamplerViewModel(
             repository: mockRepository,
             audioService: mockAudioService,
-            waveformGenerator: mockGenerator
+            editorFactory: editorFactory,
+            padViewModelGenerator: mockGenerator
         )
     }
     
     @MainActor
-    func testPadAssignmentAndCaching() {
-        // 1. Assign a sample to pad 0
-        let sampleID = mockRepository.addSample(url: URL(fileURLWithPath: "/dummy.m4a"))
+    func testPadAssignmentAndCaching() async {
+        let sampleID = mockRepository.addSample(url: createDummyAudioFile())
         orchestrator.assignSample(sampleID, toPad: 0)
         
-        // Assert assignment
         XCTAssertEqual(orchestrator.padAssignments[0], sampleID, "Sample ID should be explicitly assigned to Pad 0")
         
-        // 2. Test Caching
         let vm1 = orchestrator.getViewModel(for: 0)
         let vm2 = orchestrator.getViewModel(for: 0)
         
-        // Assert exact identical instance is returned (pointer equality)
         XCTAssertTrue(vm1 === vm2, "Orchestrator must cache the SamplerPadViewModel to prevent UI memory leaks")
     }
     
     @MainActor
-    func testEditModeRouting_ToEditor() {
-        // Setup: Assigned pad in Edit Mode
+    func testEditModeRouting_ToEditor() async {
         orchestrator.isEditMode = true
-        let sampleID = mockRepository.addSample(url: URL(fileURLWithPath: "/dummy.m4a"))
+        let sampleID = mockRepository.addSample(url: createDummyAudioFile())
         orchestrator.assignSample(sampleID, toPad: 1)
         
-        // Action
         orchestrator.handlePadTap(padIndex: 1)
         
-        // Assert
-        XCTAssertEqual(orchestrator.sampleIDToEdit?.id, sampleID, "Tapping an assigned pad in Edit Mode must route to the Waveform Editor")
+        XCTAssertEqual(orchestrator.sampleIDToEdit?.id, sampleID, "Tapping an assigned pad in Edit Mode must route to the Sampler Editor")
         XCTAssertNil(mockAudioService.lastPlayedSample, "Audio must NOT play when in Edit Mode")
     }
     
     @MainActor
-    func testEditModeRouting_ToPicker() {
-        // Setup: Empty pad in Edit Mode
+    func testEditModeRouting_ToPicker() async {
         orchestrator.isEditMode = true
-        // Pad 2 is completely empty
-        
-        // Action
         orchestrator.handlePadTap(padIndex: 2)
-        
-        // Assert
         XCTAssertEqual(orchestrator.padIndexAwaitingAssignment?.id, 2, "Tapping an empty pad in Edit Mode must route to the Sample Picker")
     }
     
     @MainActor
     func testPlaybackRouting_NormalMode() async {
-        // Setup: Assigned pad in Normal Mode
         orchestrator.isEditMode = false
-        let sampleID = mockRepository.addSample(url: URL(fileURLWithPath: "/dummy.m4a"))
+        let sampleID = mockRepository.addSample(url: createDummyAudioFile())
         orchestrator.assignSample(sampleID, toPad: 1)
         
-        // Action: We directly await playPad to avoid testing Task timing
         await orchestrator.playPad(padIndex: 1)
-        
-        // Assert
         XCTAssertNotNil(mockAudioService.lastPlayedSample, "Audio service must receive the playback command")
     }
+    
+    @MainActor
+    func testEditorViewModelFactories() async {
+        let sampleID = mockRepository.addSample(url: createDummyAudioFile())
+        
+        let editorVM = orchestrator.getEditorViewModel(for: sampleID)
+        let effectsVM = orchestrator.getEffectsEditorViewModel(for: sampleID)
+        
+        XCTAssertNotNil(editorVM, "Orchestrator should delegate SamplerEditorViewModel creation to the factory")
+        XCTAssertNotNil(effectsVM, "Orchestrator should delegate EffectChainEditorViewModel creation to the factory")
+        
+        try? await Task.sleep(nanoseconds: 100_000_000)
+    }
+
 }

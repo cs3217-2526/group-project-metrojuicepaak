@@ -6,7 +6,7 @@
 //
 
 
-final class EffectRegistry {
+class EffectRegistry {
     private var factories: [String: () -> DSPEffect] = [:]
     private var metadata: [String: EffectMetadata] = [:]
 
