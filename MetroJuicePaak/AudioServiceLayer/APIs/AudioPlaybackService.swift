@@ -31,7 +31,8 @@ protocol AudioPlaybackService {
     /// immediately plays it again from the start
     /// - Parameter sample: The AudioSample to play. If the sample
     ///     is not loaded, this call is a no-op.
-    func play(_ sample: PlayableAudioSample) async
+    func play(_ sample: PlayableAudioSample,
+              onCompletion: (@Sendable @MainActor () -> Void)?) async
     
     /// Plays a loaded audio sample
     /// If the audio sample is already playing,
@@ -45,7 +46,8 @@ protocol AudioPlaybackService {
     /// immediately start playing.
     /// - Parameter sample: The AudioSample to play. If the sample
     ///     is not loaded, this call is a no-op.
-    func playOverlapping(_ sample: PlayableAudioSample) async
+    func playOverlapping(_ sample: PlayableAudioSample,
+                         onCompletion: (@Sendable @MainActor () -> Void)?) async
     
     /// Returns the current time in seconds on the host timeline.
     /// Use this as the reference point for `scheduleAt` times.
@@ -72,7 +74,9 @@ protocol AudioPlaybackService {
     ///   - time: Absolute time in seconds on the host timeline,
     ///     as returned by `AVAudioTime.seconds`.
     ///     If `time` is in the past, the event is silently dropped.
-    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval)
+    func scheduleAt(_ sample: PlayableAudioSample,
+                    time: TimeInterval,
+                    onCompletion: (@Sendable @MainActor () -> Void)?)
     
     /// Stops playback of a specific sample
     /// - Parameter sample: The AudioSample to stop

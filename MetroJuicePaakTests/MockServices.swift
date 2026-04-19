@@ -7,10 +7,12 @@ final class MockAudioService: AudioServiceProtocol {
     var lastPlayedSample: PlayableAudioSample?
     var stopCalled = false
     
-    func play(_ sample: PlayableAudioSample) async {
+    func play(_ sample: PlayableAudioSample,
+              onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
         lastPlayedSample = sample
     }
-    func playOverlapping(_ sample: PlayableAudioSample) async {
+    func playOverlapping(_ sample: PlayableAudioSample,
+                         onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
         lastPlayedSample = sample
     }
     func stop(_ sample: PlayableAudioSample) async {
@@ -67,7 +69,8 @@ final class MockAudioService: AudioServiceProtocol {
         return Date().timeIntervalSince1970
     }
     
-    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval) {
+    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval,
+                    onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         // Record that it was scheduled so we can assert it in our tests
         self.lastPlayedSample = sample
     }
@@ -80,6 +83,23 @@ final class MockAudioService: AudioServiceProtocol {
     func isPlaying(_ sample: PlayableAudioSample) -> Bool {
         // Simple dummy logic: it's playing if it was the last thing played and stop wasn't called
         return lastPlayedSample?.url == sample.url && !stopCalled
+    }
+    
+    func rebuildEffectChain(for sample: EffectableAudioSample) async throws {
+        return
+    }
+
+    /// Routes a single parameter change to the live effect on the audio thread.
+    /// The three value arguments remain because they describe a specific atomic
+    /// change that isn't derivable from the sample's state — this is the LIVE
+    /// path, not the descriptor path.
+    func updateEffectParameter(
+        for sample: EffectableAudioSample,
+        effectInstanceId: UUID,
+        parameterId: String,
+        value: Float
+    ) {
+        return
     }
 }
 

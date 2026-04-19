@@ -107,15 +107,19 @@ final class AudioEngine {
     /// trim ratios and injecting them directly into the voice at the moment of playback.
     ///
     /// - Parameter sample: The read-only playback view of the sample to play.
-    func play(_ sample: PlayableAudioSample) {
+    func play(_ sample: PlayableAudioSample,
+              onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         let key = poolKey(for: sample)
         guard let pool = voicePools[key] else {
             logger.error("play() called for unloaded sample \(sample.url.lastPathComponent)")
+            if let onCompletion { Task { @MainActor in onCompletion() } }
             return
         }
         let voice = pool.resetAndGetPrimaryVoice()
         applyMixerProperties(sample, to: voice)
-        voice.start(startTimeRatio: sample.startTimeRatio, endTimeRatio: sample.endTimeRatio)
+        voice.start(startTimeRatio: sample.startTimeRatio,
+                    endTimeRatio: sample.endTimeRatio,
+                    onCompletion: onCompletion)
     }
 
     /// Triggers overlapping playback using round-robin voice stealing.
@@ -126,31 +130,36 @@ final class AudioEngine {
     /// physical audio buffer respects any trims made in the Waveform Editor UI.
     ///
     /// - Parameter sample: The read-only playback view of the sample to play.
-    func playOverlapping(_ sample: PlayableAudioSample) {
+    func playOverlapping(_ sample: PlayableAudioSample,
+                         onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         let key = poolKey(for: sample)
-        guard let pool = voicePools[key] else { logger.error("playoverlapping() called for unloaded sample \(sample.url.lastPathComponent)")
-            return }
+        guard let pool = voicePools[key] else {
+            logger.error("playOverlapping() called for unloaded sample \(sample.url.lastPathComponent)")
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+            return
+        }
         let voice = pool.nextVoice()
         applyMixerProperties(sample, to: voice)
-        
-        // Pass the live domain trim ratios down to the hardware voice
-        voice.start(startTimeRatio: sample.startTimeRatio, endTimeRatio: sample.endTimeRatio)
+        voice.start(startTimeRatio: sample.startTimeRatio,
+                    endTimeRatio: sample.endTimeRatio,
+                    onCompletion: onCompletion)
     }
     
-    func scheduleAt(sample: PlayableAudioSample, time: TimeInterval) {
+    func scheduleAt(sample: PlayableAudioSample,
+                    time: TimeInterval,
+                    onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         let key = poolKey(for: sample)
-        guard let pool = voicePools[key] else { logger.error("scheduleAt() called for unloaded sample \(sample.url.lastPathComponent)")
-            return }
-        
+        guard let pool = voicePools[key] else {
+            logger.error("scheduleAt() called for unloaded sample \(sample.url.lastPathComponent)")
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+            return
+        }
         let voice = pool.nextVoice()
         applyMixerProperties(sample, to: voice)
-        
-        // Pass the precise time and the trim markers down to the voice
-        voice.start(
-            at: time,
-            startTimeRatio: sample.startTimeRatio,
-            endTimeRatio: sample.endTimeRatio
-        )
+        voice.start(at: time,
+                    startTimeRatio: sample.startTimeRatio,
+                    endTimeRatio: sample.endTimeRatio,
+                    onCompletion: onCompletion)
     }
     
     func stop(_ sample: PlayableAudioSample) {

@@ -33,7 +33,6 @@ final class LowpassEffect: DSPEffect {
             maxValue: 20_000.0,
             defaultValue: 1_000.0,
             unit: .hertz,
-            taper: .logarithmic,
             controlHint: .knob,
             valueLabels: nil
         ),
@@ -44,7 +43,6 @@ final class LowpassEffect: DSPEffect {
             maxValue: 10.0,
             defaultValue: 0.707,
             unit: .unitless,
-            taper: .linear,
             controlHint: .knob,
             valueLabels: nil
         )
@@ -96,14 +94,6 @@ final class LowpassEffect: DSPEffect {
         currentCutoff = Float(bitPattern: targetCutoffBits.load(ordering: .relaxed))
         currentResonance = Float(bitPattern: targetResonanceBits.load(ordering: .relaxed))
         recomputeCoefficients()
-    }
-
-    func reset() {
-        // Clear filter memory on retrigger to avoid stale state producing clicks.
-        for i in z1.indices {
-            z1[i] = 0
-            z2[i] = 0
-        }
     }
 
     func process(context: DSPProcessContext) {

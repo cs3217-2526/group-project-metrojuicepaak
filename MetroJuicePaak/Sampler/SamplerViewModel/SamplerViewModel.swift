@@ -25,11 +25,17 @@ final class SamplerViewModel {
     typealias SamplerRepositoryProtocols =
         WritableAudioSampleRepository
         & ReadableAudioSampleRepository
+        & WaveformSourceAudioSampleRepository
 
     let repository: SamplerRepositoryProtocols
+
     private let audioService: AudioServiceProtocol
+    private let padFactory: PadViewModelFactory
     private let editorFactory: EditorViewModelFactory
-    private let padViewModelGenerator: WaveformGenerationService
+    
+    // MARK: - Constants
+
+    private static let padPolyphony = 6
 
     // MARK: - Core State
 
@@ -55,49 +61,34 @@ final class SamplerViewModel {
     var padIndexAwaitingAssignment: PickerContext? = nil
 
     // MARK: - Initialization
-
-    init(repository: SamplerRepositoryProtocols
-               & WaveformSourceAudioSampleRepository,
-         audioService: AudioServiceProtocol,
-         editorFactory: EditorViewModelFactory,
-         padViewModelGenerator: WaveformGenerationService) {
-        self.repository = repository
-        self.audioService = audioService
-        self.editorFactory = editorFactory
-        self.padViewModelGenerator = padViewModelGenerator
-    }
+    
+    init(repository: SamplerRepositoryProtocols,
+             audioService: AudioServiceProtocol,
+             editorFactory: EditorViewModelFactory,
+             padFactory: PadViewModelFactory) {
+            self.repository = repository
+            self.audioService = audioService
+            self.editorFactory = editorFactory
+            self.padFactory = padFactory
+        }
 
     // MARK: - Pad UI Factory
 
     func getViewModel(for padIndex: Int) -> SamplerPadViewModel? {
-        guard let sampleID = padAssignments[padIndex] else {
-            padViewModelCache.removeValue(forKey: padIndex)
-            return nil
+            guard let sampleID = padAssignments[padIndex] else {
+                padViewModelCache.removeValue(forKey: padIndex)
+                return nil
+            }
+
+            if let existing = padViewModelCache[padIndex],
+               existing.sampleID == sampleID {
+                return existing
+            }
+
+            let vm = padFactory.makePadViewModel(for: sampleID)
+            padViewModelCache[padIndex] = vm
+            return vm
         }
-
-        if let existingVM = padViewModelCache[padIndex],
-           existingVM.sampleID == sampleID {
-            return existingVM
-        }
-
-        guard let repositoryForPad = repository as? (SamplerRepositoryProtocols
-                                                     & WaveformSourceAudioSampleRepository)
-        else {
-            return nil
-        }
-
-        let newVM = SamplerPadViewModel(
-            sampleID: sampleID,
-            repository: repositoryForPad,
-            generator: padViewModelGenerator
-        )
-        padViewformCache(for: padIndex, vm: newVM)
-        return newVM
-    }
-
-    private func padViewformCache(for padIndex: Int, vm: SamplerPadViewModel) {
-        padViewModelCache[padIndex] = vm
-    }
 
     // MARK: - Editor View Model Factories (delegated)
 
@@ -129,7 +120,7 @@ final class SamplerViewModel {
         guard let sampleID = padAssignments[padIndex],
               let playableSample = repository.getPlayableSample(for: sampleID) else { return }
 
-        await audioService.playOverlapping(playableSample)
+        await audioService.playOverlapping(playableSample, onCompletion: nil)
     }
 
     // MARK: - Recording Flow

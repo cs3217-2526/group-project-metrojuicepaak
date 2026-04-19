@@ -30,7 +30,6 @@ final class GainEffect: DSPEffect {
             maxValue: 12.0,
             defaultValue: 0.0,
             unit: .decibels,
-            taper: .linear,
             controlHint: .fader,
             valueLabels: nil
         )
@@ -66,12 +65,6 @@ final class GainEffect: DSPEffect {
         smoothingCoefficient = 1.0 - expf(-1.0 / (Float(sampleRate) * smoothingTimeSeconds))
 
         // Snap current gain to current target on prepare (no audible ramp on load).
-        let target = Float(bitPattern: targetLinearGainBits.load(ordering: .relaxed))
-        currentLinearGain = target
-    }
-
-    func reset() {
-        // Snap to target on retrigger — no residual smoothing state carries over.
         let target = Float(bitPattern: targetLinearGainBits.load(ordering: .relaxed))
         currentLinearGain = target
     }

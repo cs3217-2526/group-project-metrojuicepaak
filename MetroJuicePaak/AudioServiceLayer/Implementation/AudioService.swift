@@ -73,16 +73,21 @@ class AudioService: AudioServiceProtocol {
         audioEngine.unload(sample)
     }
 
-    func play(_ sample: PlayableAudioSample) async {
-        audioEngine.play(sample)
+    func play(_ sample: PlayableAudioSample,
+              onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
+        audioEngine.play(sample, onCompletion: onCompletion)
     }
 
-    func playOverlapping(_ sample: PlayableAudioSample) async {
-        audioEngine.playOverlapping(sample)
+    func playOverlapping(_ sample: PlayableAudioSample,
+                         onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
+        audioEngine.playOverlapping(sample, onCompletion: onCompletion)
     }
+
     
-    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval) {
-        audioEngine.scheduleAt(sample: sample, time: time)
+    func scheduleAt(_ sample: PlayableAudioSample,
+                    time: TimeInterval,
+                    onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
+        audioEngine.scheduleAt(sample: sample, time: time, onCompletion: onCompletion)
     }
 
     func stop(_ sample: PlayableAudioSample) async {

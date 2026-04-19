@@ -270,7 +270,7 @@ final class MusicEngineImplementation: MusicEngine {
             
             // Schedule the Audio
             // The AudioPlaybackService handles the conversion to AVAudioTime internally
-            audioPlaybackService.scheduleAt(sample, time: targetTime)
+            audioPlaybackService.scheduleAt(sample, time: targetTime, onCompletion: nil)
         }
         
         // Update last scheduled step to the absolute step index

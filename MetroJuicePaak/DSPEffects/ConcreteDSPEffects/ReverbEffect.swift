@@ -5,12 +5,6 @@
 //  Created by Noah Ang Shi Hern on 19/4/26.
 //
 
-
-//
-//  ReverbEffect.swift
-//  MetroJuicePaak
-//
-
 import Foundation
 import Atomics
 
@@ -35,7 +29,6 @@ final class ReverbEffect: DSPEffect {
             maxValue: 1.0,
             defaultValue: 0.5,
             unit: .unitless,
-            taper: .linear,
             controlHint: .knob,
             valueLabels: nil
         ),
@@ -46,7 +39,6 @@ final class ReverbEffect: DSPEffect {
             maxValue: 1.0,
             defaultValue: 0.3,
             unit: .percent,
-            taper: .linear,
             controlHint: .knob,
             valueLabels: nil
         ),
@@ -57,7 +49,6 @@ final class ReverbEffect: DSPEffect {
             maxValue: 1.0,
             defaultValue: 0.3,
             unit: .percent,
-            taper: .linear,
             controlHint: .knob,
             valueLabels: nil
         )
@@ -83,7 +74,9 @@ final class ReverbEffect: DSPEffect {
     private var smoothedSize: Float = 0.5
     private var smoothedDamping: Float = 0.3
     private var smoothedMix: Float = 0.3
-    private var smoothingCoefficient: Float = 0.001
+    private var sampleRate: Float = 48000
+    private let smoothingTimeSeconds: Float = 0.02
+    // (delete smoothingCoefficient)
 
     // MARK: - DSPEffect
 
@@ -91,9 +84,8 @@ final class ReverbEffect: DSPEffect {
 
     func prepare(sampleRate: Double, maxFrameCount: Int, channelCount: Int) {
         let fs = Float(sampleRate)
+        self.sampleRate = fs
 
-        let smoothingTimeSeconds: Float = 0.02
-        smoothingCoefficient = 1.0 - expf(-1.0 / (fs * smoothingTimeSeconds))
 
         // Schroeder's original delay times, in seconds, tuned for musicality.
         // Prime-ish ratios so echoes from different combs don't line up.
@@ -114,19 +106,13 @@ final class ReverbEffect: DSPEffect {
         smoothedMix = Float(bitPattern: targetMixBits.load(ordering: .relaxed))
     }
 
-    func reset() {
-        for i in combs.indices { combs[i].clear() }
-        for i in allpasses.indices { allpasses[i].clear() }
-    }
-
     func process(context: DSPProcessContext) {
         let sizeTarget = Float(bitPattern: targetSizeBits.load(ordering: .relaxed))
         let dampingTarget = Float(bitPattern: targetDampingBits.load(ordering: .relaxed))
         let mixTarget = Float(bitPattern: targetMixBits.load(ordering: .relaxed))
-        let alpha = smoothingCoefficient
+        let bufferDuration = Float(context.frameCount) / sampleRate
+        let alpha = 1.0 - expf(-bufferDuration / smoothingTimeSeconds)
 
-        // Per-buffer smoothing is fine for reverb — the character changes
-        // gradually anyway and per-sample wouldn't be audibly different.
         smoothedSize += (sizeTarget - smoothedSize) * alpha
         smoothedDamping += (dampingTarget - smoothedDamping) * alpha
         smoothedMix += (mixTarget - smoothedMix) * alpha
