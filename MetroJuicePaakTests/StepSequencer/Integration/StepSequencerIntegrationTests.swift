@@ -15,7 +15,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
     var mockEngine: MockMusicEngine!
     var mockRepo: MockAudioSampleRepository!
     
-    // Stable dummy identifiers to simulate real samples
     private let kickSampleID = ObjectIdentifier(DummySample())
     private let snareSampleID = ObjectIdentifier(DummySample())
     
@@ -24,9 +23,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         mockEngine = MockMusicEngine()
         mockRepo = MockAudioSampleRepository()
         
-        // We instantiate the REAL ViewModel, which internally instantiates 
-        // the REAL UndoRedoManager and StepSequencerModel. 
-        // The only fakes are the hardware boundary (Engine) and Data pool (Repo).
         viewModel = StepSequencerViewModel(repository: mockRepo, musicEngine: mockEngine)
     }
     
@@ -54,7 +50,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         let snareTrackId = viewModel.sequencerModel.tracks[1].id
         viewModel.executeAssignSample(trackId: snareTrackId, sampleID: snareSampleID)
         
-        // Assert Phase 1 Integration
         XCTAssertEqual(viewModel.sequencerModel.tracks.count, 2)
         XCTAssertEqual(mockEngine.latestSnapshot?.tracks.count, 2, "Engine must be perfectly synced with the model via snapshots")
         XCTAssertTrue(viewModel.undoRedoManager.canUndo, "Undo stack should be tracking these setup commands")
@@ -72,7 +67,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         viewModel.executeToggleStep(trackId: snareTrackId, stepIndex: 4)
         viewModel.executeToggleStep(trackId: snareTrackId, stepIndex: 12)
         
-        // Assert Phase 2 Integration
         let activeKicks = viewModel.sequencerModel.tracks[0].steps.filter { $0 }.count
         let activeSnares = viewModel.sequencerModel.tracks[1].steps.filter { $0 }.count
         XCTAssertEqual(activeKicks, 4)
@@ -88,7 +82,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         viewModel.increaseBPM() // 121
         viewModel.increaseBPM() // 122
         
-        // Assert Phase 3 Integration
         XCTAssertTrue(mockEngine.isRunning)
         XCTAssertEqual(mockEngine.latestSnapshot?.bpm, 122, "Engine snapshot must instantly reflect direct BPM mutations")
         
@@ -99,7 +92,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         // 6. User expands the 16-step beat into a 32-step grid
         viewModel.executeChangeStepCount(to: 32)
         
-        // Assert Phase 4 Integration
         XCTAssertEqual(viewModel.sequencerModel.stepCount, 32)
         XCTAssertEqual(viewModel.sequencerModel.tracks[0].steps.count, 32)
         
@@ -118,11 +110,9 @@ final class StepSequencerIntegrationTests: XCTestCase {
         viewModel.undo() // Reverts Snare Step 12
         viewModel.undo() // Reverts Snare Step 4
         
-        // Assert Phase 5 Integration
         XCTAssertEqual(viewModel.sequencerModel.stepCount, 16, "Grid should be perfectly restored to 16 steps")
         XCTAssertEqual(viewModel.sequencerModel.tracks[1].steps.filter { $0 }.count, 0, "Snare track should be completely wiped of active steps after undoing")
         
-        // Global state should NOT be affected by time-travel
         XCTAssertTrue(mockEngine.isRunning, "Undo operations must not interrupt active playback transport")
         XCTAssertEqual(viewModel.sequencerModel.bpm, 122, "Undo operations must not overwrite the live BPM")
     }
