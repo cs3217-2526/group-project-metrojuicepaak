@@ -21,14 +21,21 @@ final class MockAudioService: AudioServiceProtocol, LiveEffectChainService {
     
     // MARK: - AudioPlaybackService
     var currentHostTime: TimeInterval { return Date().timeIntervalSince1970 }
-    
-    func play(_ sample: PlayableAudioSample) async { lastPlayedSample = sample }
-    func playOverlapping(_ sample: PlayableAudioSample) async { lastPlayedSample = sample }
-    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval) { lastPlayedSample = sample }
-    
-    func stop(_ sample: PlayableAudioSample) async { stopCalled = true }
-    func stopAll() async { stopCalled = true }
-    
+ 
+    func play(_ sample: PlayableAudioSample,
+              onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
+        lastPlayedSample = sample
+    }
+    func playOverlapping(_ sample: PlayableAudioSample,
+                         onCompletion: (@Sendable @MainActor () -> Void)? = nil) async {
+        lastPlayedSample = sample
+    }
+    func stop(_ sample: PlayableAudioSample) async {
+        stopCalled = true
+    }
+    func stopAll() async {
+        stopCalled = true
+    }
     func load(sample: PlayableAudioSample, polyphony: Int) async throws {}
     func unload(_ sample: PlayableAudioSample) async {}
     
@@ -60,9 +67,48 @@ final class MockAudioService: AudioServiceProtocol, LiveEffectChainService {
     func setMasterVolume(_ volume: Float) { self.masterVolume = volume }
     func setDuckingEnabled(_ enabled: Bool) { self.isDuckingEnabled = enabled }
     
-    // MARK: - LiveEffectChainService Stubs
-    func rebuildEffectChain(for sample: EffectableAudioSample) async throws {}
-    func updateEffectParameter(for sample: EffectableAudioSample, effectInstanceId: UUID, parameterId: String, value: Float) {}
+    func setDuckingEnabled(_ enabled: Bool) {
+        self.isDuckingEnabled = enabled
+    }
+    // MARK: - AudioPlaybackService  Conformance
+        
+    // A dummy host time for testing the sequencer logic
+    var currentHostTime: TimeInterval {
+        return Date().timeIntervalSince1970
+    }
+    
+    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval,
+                    onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
+        // Record that it was scheduled so we can assert it in our tests
+        self.lastPlayedSample = sample
+    }
+    
+    func isLoaded(_ sample: PlayableAudioSample) -> Bool {
+        // For our unit tests, we'll assume samples are successfully loaded
+        return true
+    }
+    
+    func isPlaying(_ sample: PlayableAudioSample) -> Bool {
+        // Simple dummy logic: it's playing if it was the last thing played and stop wasn't called
+        return lastPlayedSample?.url == sample.url && !stopCalled
+    }
+    
+    func rebuildEffectChain(for sample: EffectableAudioSample) async throws {
+        return
+    }
+
+    /// Routes a single parameter change to the live effect on the audio thread.
+    /// The three value arguments remain because they describe a specific atomic
+    /// change that isn't derivable from the sample's state — this is the LIVE
+    /// path, not the descriptor path.
+    func updateEffectParameter(
+        for sample: EffectableAudioSample,
+        effectInstanceId: UUID,
+        parameterId: String,
+        value: Float
+    ) {
+        return
+    }
 }
 
 // MARK: - Waveform Mock

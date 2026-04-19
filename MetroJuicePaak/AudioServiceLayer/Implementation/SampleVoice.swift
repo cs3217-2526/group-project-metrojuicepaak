@@ -203,19 +203,30 @@ final class SampleVoice {
     ///   When the ratios are the defaults 0 / 1, the master buffer is scheduled
     ///   directly with no copy (fast path). A zero-length trim is silently
     ///   dropped, as ``AVAudioEngine`` raises on an empty buffer.
-    func start(at time: TimeInterval, startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
+    func start(at time: TimeInterval,
+               startTimeRatio: Double = 0.0,
+               endTimeRatio: Double = 1.0,
+               onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         playerNode.stop()
         
-        // 1. Slice the required segment out of RAM instantly
-        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio, endTimeRatio: endTimeRatio) else { return }
-        
-        // 2. Convert to hardware clock time
+        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio,endTimeRatio: endTimeRatio) else {
+            // Zero-length trim: nothing to schedule. Fire completion so callers
+            // relying on one-start-one-completion accounting stay balanced.
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+            return
+        }
+
         let hostTime = AudioTimeConverter.hostTimeFrom(timeInterval: time)
         let avTime = AVAudioTime(hostTime: hostTime)
-        
-        // 3. Schedule the RAM buffer
-        playerNode.scheduleBuffer(buffer, at: avTime, options: .interrupts, completionHandler: nil)
-        
+
+        playerNode.scheduleBuffer(buffer,
+                                  at: avTime,
+                                  options: .interrupts,
+                                  completionCallbackType: .dataPlayedBack) { _ in
+            // Fires on AVFoundation's internal queue — hop to MainActor.
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+        }
+
         if !engine.isRunning { try? engine.start() }
         playerNode.play()
     }
@@ -233,15 +244,27 @@ final class SampleVoice {
     ///   - startTimeRatio: Normalised start of the trimmed region, in [0, 1].
     ///   - endTimeRatio: Normalised end of the trimmed region, in [0, 1].
     /// Immediate playback for the Sampler pads
-    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
+    func start(startTimeRatio: Double = 0.0,
+               endTimeRatio: Double = 1.0,
+               onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         playerNode.stop()
-        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio, endTimeRatio: endTimeRatio) else { return }
         
-        playerNode.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
-        
+        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio,endTimeRatio: endTimeRatio) else {
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+            return
+        }
+
+        playerNode.scheduleBuffer(buffer,
+                                  at: nil,
+                                  options: .interrupts,
+                                  completionCallbackType: .dataPlayedBack) { _ in
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+        }
+
         if !engine.isRunning { try? engine.start() }
         playerNode.play()
     }
+    
     
     func setVolume(_ volume: Float) {
         self.playerNode.volume = volume

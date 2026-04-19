@@ -120,13 +120,23 @@ final class EffectChainEditorViewModel {
     
     // MARK: - Preview playback
     
+    @ObservationIgnored private var previewGeneration: Int = 0
+
     func togglePreview() async {
         if isPlayingPreview {
             await audioService.stop(playable)
             isPlayingPreview = false
         } else {
-            await audioService.play(playable)
+            previewGeneration += 1
+            let thisGeneration = previewGeneration
             isPlayingPreview = true
+
+            await audioService.play(playable) { [weak self] in
+                guard let self, self.previewGeneration == thisGeneration else {
+                    return  // Stale completion from an older preview session.
+                }
+                self.isPlayingPreview = false
+            }
         }
     }
 

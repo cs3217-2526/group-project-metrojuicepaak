@@ -149,18 +149,28 @@ class SamplerEditorViewModel {
     /// - Note: To allow the engine to play the exact segment the user is viewing, this method
     ///         temporarily pushes the transient slider values down to the domain model before
     ///         calling `play`.
+    @ObservationIgnored private var previewGeneration: Int = 0
+
     func togglePreview() async {
         if isPlayingPreview {
             await audioService.stop(playable)
             isPlayingPreview = false
         } else {
-            isPlayingPreview = true
             do {
                 try editable.setStartTimeRatio(tempStartRatio)
                 try editable.setEndTimeRatio(tempEndRatio)
-                await audioService.play(playable)
             } catch {
-                print("Failed to preview edits: \(error)")
+                print("Failed to apply preview trim: \(error)")
+                return
+            }
+
+            previewGeneration += 1
+            let thisGeneration = previewGeneration
+            isPlayingPreview = true
+
+            await audioService.play(playable) { [weak self] in
+                guard let self, self.previewGeneration == thisGeneration else { return }
+                self.isPlayingPreview = false
             }
         }
     }

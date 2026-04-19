@@ -125,6 +125,8 @@ struct MetroJuicePaakApp: App {
                 waveformGenerator: waveformGenerator,
                 effectRegistry: effectRegistry
             )
+            
+            let padFactory = PadViewModelFactory(repository: repository, waveformService: WaveformCache())
             print("🎙️ 7. Editor view model factory built.")
 
             let avEngine = AVAudioEngine()
@@ -138,7 +140,7 @@ struct MetroJuicePaakApp: App {
                 repository: repository,
                 audioService: audioService,
                 editorFactory: editorFactory,
-                padViewModelGenerator: waveformGenerator
+                padFactory: padFactory
             )
             print("🎙️ 8. Sampler orchestrator built.")
 

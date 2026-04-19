@@ -18,12 +18,6 @@ enum ParameterUnit: String, Codable {
     case hertz, decibels, seconds, milliseconds, percent, ratio, semitones, unitless
 }
 
-enum ParameterTaper: String, Codable {
-    case linear       // uniform across the knob's travel
-    case logarithmic  // for frequencies — 20 Hz to 20 kHz feels natural
-    case exponential  // for times — short values get more resolution
-}
-
 struct ParameterDescriptor: Codable, Identifiable {
     let id: String
     let displayName: String
@@ -31,7 +25,6 @@ struct ParameterDescriptor: Codable, Identifiable {
     let maxValue: Float
     let defaultValue: Float
     let unit: ParameterUnit
-    let taper: ParameterTaper
     let controlHint: ParameterControlHint
     let valueLabels: [String]?             
 }
@@ -63,9 +56,6 @@ protocol DSPEffect: AnyObject {
     /// Called once before the first `process` call, on the audio thread's
     /// preparation phase. Allocate all state here.
     func prepare(sampleRate: Double, maxFrameCount: Int, channelCount: Int)
-
-    /// Zero all internal state. Called when a voice retriggers.
-    func reset()
 
     /// Apply the effect in-place. Must not allocate or block.
     func process(context: DSPProcessContext)

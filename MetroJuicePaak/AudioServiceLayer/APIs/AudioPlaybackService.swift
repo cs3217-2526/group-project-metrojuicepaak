@@ -25,13 +25,25 @@ protocol AudioPlaybackService {
     /// - Parameter sample: The AudioSample to unload
     func unload(_ sample: PlayableAudioSample) async
     
-    /// Plays a loaded audio sample
-    /// If the audio sample is already playing,
-    /// this stops the currently playing audio sample and
-    /// immediately plays it again from the start
-    /// - Parameter sample: The AudioSample to play. If the sample
-    ///     is not loaded, this call is a no-op.
-    func play(_ sample: PlayableAudioSample) async
+    /// Plays a sample, interrupting any current playback of the same sample.
+    ///
+    /// - Parameter onCompletion: Fires on MainActor when playback ends — either
+    ///   by reaching the end of the buffer, by a matching ``stop(_:)`` call, or
+    ///   by being interrupted by a subsequent `play` for the same sample.
+    ///
+    /// - Important: UI flows that toggle a button between "play" and "stop"
+    ///   (e.g. the editor preview buttons) MUST pass a completion handler to
+    ///   flip their state back. Without it, a button bound to an `isPlaying`
+    ///   flag stays stuck in the "playing" state after the sample finishes
+    ///   naturally. Use ``playOverlapping(_:)`` when no completion signal is
+    ///   needed.
+    ///
+    /// - Note: The handler fires exactly once per call. Stale completions from
+    ///   a superseded session can still land after a rapid stop-then-play —
+    ///   call sites that toggle rapidly should guard against stale state
+    ///   (see `previewGeneration` in `EffectChainEditorViewModel`).
+    func play(_ sample: PlayableAudioSample,
+              onCompletion: (@Sendable @MainActor () -> Void)?) async
     
     /// Plays a loaded audio sample
     /// If the audio sample is already playing,
@@ -45,7 +57,8 @@ protocol AudioPlaybackService {
     /// immediately start playing.
     /// - Parameter sample: The AudioSample to play. If the sample
     ///     is not loaded, this call is a no-op.
-    func playOverlapping(_ sample: PlayableAudioSample) async
+    func playOverlapping(_ sample: PlayableAudioSample,
+                         onCompletion: (@Sendable @MainActor () -> Void)?) async
     
     /// Returns the current time in seconds on the host timeline.
     /// Use this as the reference point for `scheduleAt` times.
@@ -72,7 +85,9 @@ protocol AudioPlaybackService {
     ///   - time: Absolute time in seconds on the host timeline,
     ///     as returned by `AVAudioTime.seconds`.
     ///     If `time` is in the past, the event is silently dropped.
-    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval)
+    func scheduleAt(_ sample: PlayableAudioSample,
+                    time: TimeInterval,
+                    onCompletion: (@Sendable @MainActor () -> Void)?)
     
     /// Stops playback of a specific sample
     /// - Parameter sample: The AudioSample to stop
