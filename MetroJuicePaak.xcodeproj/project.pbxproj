@@ -10,6 +10,7 @@
 		57B260262F6927DC00D45B43 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 57B260252F6927DC00D45B43 /* README.md */; };
 		57B260282F6928AA00D45B43 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 57B260272F6928A100D45B43 /* .gitignore */; };
 		57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 57B260352F6E840E00D45B43 /* swiftlint.yml */; };
+		57C57E6B2F94BFFD00CE09EB /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = 57C57E6A2F94BFFD00CE09EB /* Atomics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,20 @@
 			);
 			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
 		};
+		E660A9842F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
+		};
+		E660A9852F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -60,6 +75,10 @@
 		};
 		57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E660A9842F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
+				E660A9852F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
+			);
 			path = MetroJuicePaakTests;
 			sourceTree = "<group>";
 		};
@@ -75,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				57C57E6B2F94BFFD00CE09EB /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +125,7 @@
 				57B25FDF2F69263A00D45B43 /* MetroJuicePaak */,
 				57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */,
 				57B25FF72F69263B00D45B43 /* MetroJuicePaakUITests */,
+				57C57E692F94BFFD00CE09EB /* Frameworks */,
 				57B25FDE2F69263A00D45B43 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -117,6 +138,13 @@
 				57B25FF42F69263B00D45B43 /* MetroJuicePaakUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		57C57E692F94BFFD00CE09EB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,6 +168,7 @@
 			);
 			name = MetroJuicePaak;
 			packageProductDependencies = (
+				57C57E6A2F94BFFD00CE09EB /* Atomics */,
 			);
 			productName = MetroJuicePaak;
 			productReference = 57B25FDD2F69263A00D45B43 /* MetroJuicePaak.app */;
@@ -199,7 +228,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					57B25FDC2F69263A00D45B43 = {
 						CreatedOnToolsVersion = 26.2;
@@ -223,6 +252,9 @@
 			);
 			mainGroup = 57B25FD42F69263A00D45B43;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				57C57E682F94BFF900CE09EB /* XCRemoteSwiftPackageReference "swift-atomics" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 57B25FDE2F69263A00D45B43 /* Products */;
 			projectDirPath = "";
@@ -373,13 +405,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -432,12 +463,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -459,12 +489,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Vince.Noah.Edwin;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Edwin.Noah.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -492,12 +523,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Vince.Noah.Edwin;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaak.Edwin.Noah.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -513,13 +545,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -535,13 +568,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakTests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -558,10 +592,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -578,10 +612,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J23WWWY77T;
+				DEVELOPMENT_TEAM = 9UTRKUQYLF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = CS3217.MetroJuicePaakUITests.Vince;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -633,6 +667,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		57C57E682F94BFF900CE09EB /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-atomics.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		57C57E6A2F94BFFD00CE09EB /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 57C57E682F94BFF900CE09EB /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 57B25FD52F69263A00D45B43 /* Project object */;
 }

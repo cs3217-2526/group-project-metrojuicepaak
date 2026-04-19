@@ -117,17 +117,37 @@ struct SamplePickerView: View {
     let onSelect: (ObjectIdentifier) -> Void
     
     var body: some View {
-        List {
-            ForEach(
-                repository.allSamples.sorted { $0.name < $1.name },
-                id: \.name
-            ) { sample in
-                Button {
-                    onSelect(ObjectIdentifier(sample))
-                } label: {
-                    Text(sample.name)
+        VStack(spacing: 0) {
+            // MARK: - Custom Header
+            HStack {
+                Spacer()
+                Text("Sample Picker")
+                    .font(.headline)
+                    .accessibilityIdentifier("Sample Picker")
+                Spacer()
+            }
+            .padding()
+            .background(Color(.systemBackground))
+
+            Divider()
+
+            // MARK: - Sample List
+            List {
+                ForEach(
+                    repository.allSamples.sorted { $0.name < $1.name },
+                    id: \.name
+                ) { sample in
+                    Button {
+                        onSelect(ObjectIdentifier(sample))
+                    } label: {
+                        Text(sample.name)
+                            .foregroundColor(.primary)
+                    }
                 }
             }
+            .listStyle(.plain)
         }
     }
 }
+
+

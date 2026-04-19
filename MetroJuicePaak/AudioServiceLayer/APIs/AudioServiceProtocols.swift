@@ -12,9 +12,6 @@ import Foundation
 protocol AudioServiceProtocol:
     AudioPlaybackService,
     AudioRecordingService,
+    LiveEffectChainService,
     AudioConfigurationService {
-    
-    /// Initializes the audio service
-    /// - Throws: If initialization fails
-    init() async throws
 }

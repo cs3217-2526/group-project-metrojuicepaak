@@ -37,6 +37,8 @@ struct SamplerPadButton: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(uiElements.color.swiftUIColor)
                 .shadow(color: .black.opacity(0.3), radius: isBeingPressed ? 2 : 4, y: isBeingPressed ? 2 : 4)
+                .accessibilityIdentifier("SamplerPad_\(padIndex)")
+                .accessibilityAddTraits(.isButton)
             
             // Foreground Content Layer
             if let node = localViewModel {

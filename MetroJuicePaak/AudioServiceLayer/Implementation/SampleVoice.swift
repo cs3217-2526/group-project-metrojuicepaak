@@ -101,45 +101,47 @@ final class SampleVoice {
         guard let format = connectionFormat else {
             throw SampleVoiceError.notLoaded
         }
-
+        
         // 1. Tear down the existing chain.
         disconnectAndDetachCurrentChain()
-
+        
         // 2. Construct fresh live effects and their AU wrappers for each
         //    descriptor entry.
         var newEffects: [DSPEffect] = []
         var newUnits: [AVAudioUnit] = []
         var newLookup: [UUID: DSPEffect] = [:]
-
+        
+        print("🔧 Rebuild: chain has \(chain.effects.count) descriptor entries")
         for instance in chain.effects {
+            print("🔧   processing descriptor: \(instance.effectIdentifier)")
             guard let effect = registry.make(identifier: instance.effectIdentifier) else {
-                // An identifier in the descriptor doesn't exist in the registry.
-                // Could happen after removing an effect type between project saves.
-                // Skip this entry and continue; log in real code.
+                print("🔧   ❌ registry.make returned nil for \(instance.effectIdentifier)")
                 continue
             }
-
-            // Apply stored parameter values before the effect starts rendering.
-            // These go into the live effect's atomics so that when prepare and
-            // process run later, the smoothed-from values start at the stored ones.
+            print("🔧   ✅ registry made effect: \(type(of: effect))")
+            
             for (parameterId, value) in instance.parameterValues {
                 effect.setParameter(id: parameterId, value: value)
             }
-
-            // Wrap into an engine-attachable AVAudioUnit via the bridge.
-            let auUnit = try await bridge.makeAVAudioUnit(for: effect)
-
-            engine.attach(auUnit)
-
-            newEffects.append(effect)
-            newUnits.append(auUnit)
-            newLookup[instance.id] = effect
+            
+            do {
+                let auUnit = try await bridge.makeAVAudioUnit(for: effect)
+                print("🔧   ✅ AU wrapped: \(auUnit)")
+                engine.attach(auUnit)
+                newEffects.append(effect)
+                newUnits.append(auUnit)
+                newLookup[instance.id] = effect
+            } catch {
+                print("🔧   ❌ bridge.makeAVAudioUnit threw: \(error)")
+                throw error
+            }
         }
-
+        print("🔧 Rebuild: newUnits count = \(newUnits.count)")
+        
         self.liveEffects = newEffects
         self.effectUnits = newUnits
         self.effectsByInstanceId = newLookup
-
+        
         // 3. Wire player -> effects in series -> main mixer.
         var previous: AVAudioNode = playerNode
         for unit in newUnits {
@@ -147,11 +149,22 @@ final class SampleVoice {
             previous = unit
         }
         engine.connect(previous, to: engine.mainMixerNode, format: format)
-
+        
         // 4. The engine will call allocateRenderResources on each new AU
         //    on its own when it next prepares for rendering, which triggers
         //    prepare() on each DSPEffect and allocates their live state.
         //    If the engine is already running, this happens immediately.
+        // ====== ADD FROM HERE ======
+        print("🔧 === GRAPH AFTER REBUILD ===")
+        print("🔧 Player output connections: \(engine.outputConnectionPoints(for: playerNode, outputBus: 0))")
+        for (i, unit) in newUnits.enumerated() {
+            print("🔧 Effect \(i) (\(type(of: unit.auAudioUnit))):")
+            print("🔧   outputs: \(engine.outputConnectionPoints(for: unit, outputBus: 0))")
+        }
+        print("🔧 Engine running: \(engine.isRunning)")
+        print("🔧 === END GRAPH ===")
+        // ====== TO HERE ======
+        
     }
 
     /// Detach the voice from the engine entirely. Called when the refcount
@@ -190,19 +203,30 @@ final class SampleVoice {
     ///   When the ratios are the defaults 0 / 1, the master buffer is scheduled
     ///   directly with no copy (fast path). A zero-length trim is silently
     ///   dropped, as ``AVAudioEngine`` raises on an empty buffer.
-    func start(at time: TimeInterval, startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
+    func start(at time: TimeInterval,
+               startTimeRatio: Double = 0.0,
+               endTimeRatio: Double = 1.0,
+               onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         playerNode.stop()
         
-        // 1. Slice the required segment out of RAM instantly
-        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio, endTimeRatio: endTimeRatio) else { return }
-        
-        // 2. Convert to hardware clock time
+        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio,endTimeRatio: endTimeRatio) else {
+            // Zero-length trim: nothing to schedule. Fire completion so callers
+            // relying on one-start-one-completion accounting stay balanced.
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+            return
+        }
+
         let hostTime = AudioTimeConverter.hostTimeFrom(timeInterval: time)
         let avTime = AVAudioTime(hostTime: hostTime)
-        
-        // 3. Schedule the RAM buffer
-        playerNode.scheduleBuffer(buffer, at: avTime, options: .interrupts, completionHandler: nil)
-        
+
+        playerNode.scheduleBuffer(buffer,
+                                  at: avTime,
+                                  options: .interrupts,
+                                  completionCallbackType: .dataPlayedBack) { _ in
+            // Fires on AVFoundation's internal queue — hop to MainActor.
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+        }
+
         if !engine.isRunning { try? engine.start() }
         playerNode.play()
     }
@@ -220,15 +244,27 @@ final class SampleVoice {
     ///   - startTimeRatio: Normalised start of the trimmed region, in [0, 1].
     ///   - endTimeRatio: Normalised end of the trimmed region, in [0, 1].
     /// Immediate playback for the Sampler pads
-    func start(startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0) {
+    func start(startTimeRatio: Double = 0.0,
+               endTimeRatio: Double = 1.0,
+               onCompletion: (@Sendable @MainActor () -> Void)? = nil) {
         playerNode.stop()
-        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio, endTimeRatio: endTimeRatio) else { return }
         
-        playerNode.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
-        
+        guard let buffer = getTrimmedBuffer(startTimeRatio: startTimeRatio,endTimeRatio: endTimeRatio) else {
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+            return
+        }
+
+        playerNode.scheduleBuffer(buffer,
+                                  at: nil,
+                                  options: .interrupts,
+                                  completionCallbackType: .dataPlayedBack) { _ in
+            if let onCompletion { Task { @MainActor in onCompletion() } }
+        }
+
         if !engine.isRunning { try? engine.start() }
         playerNode.play()
     }
+    
     
     func setVolume(_ volume: Float) {
         self.playerNode.volume = volume
