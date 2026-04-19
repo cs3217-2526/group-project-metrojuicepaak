@@ -1,0 +1,60 @@
+sequenceDiagram
+    autonumber
+    participant App as MetroJuicePaakApp
+    participant Boot as AppBootstrap
+    participant Reg as EffectRegistry
+    participant GainType as GainEffect
+    participant Bridge as DSPEffectAUBridge
+    participant ACM as AudioComponentManager
+    participant VM as EffectChainEditorViewModel
+    participant Sample as AudioSample
+    participant Service as AudioService
+    participant Engine as AudioEngine
+    participant Voice as SampleVoice
+    participant AU as DSPEffectAudioUnit
+    participant AVAU as AVAudioUnit
+
+    Note over App,ACM: Phase 1 - Boot-time registration
+
+    App->>Reg: init
+    App->>Boot: registerBuiltInEffects
+    Boot->>Reg: register GainEffect
+    Reg->>GainType: read identifier, displayName, category, parameterDescriptors
+    Reg->>Reg: precondition parameterDescriptors count less or equal to 6
+    Reg->>Reg: store factory closure and metadata
+    Boot->>Reg: register LowpassEffect
+    Boot->>Reg: register ReverbEffect
+    App->>Bridge: registerOnce
+    Bridge->>ACM: AUAudioUnit registerSubclass
+
+    Note over VM,AVAU: Phase 2 - On-demand instantiation
+
+    VM->>VM: addEffect with identifier gain
+    VM->>Reg: allMetadata lookup
+    Reg-->>VM: EffectMetadata
+    VM->>Sample: addEffect with descriptor
+    Note right of Sample: Throws tooManyEffects if chain has 4 already
+
+    VM->>Service: rebuildEffectChain for effectable
+    Service->>Engine: rebuildEffectChain for sample
+    Engine->>Voice: rebuildChain with descriptor
+
+    loop for each descriptor
+        Voice->>Reg: make with identifier
+        Reg-->>Voice: DSPEffect instance
+        Voice->>Voice: apply stored parameterValues
+        Voice->>Bridge: makeAVAudioUnit for effect
+        Bridge->>Bridge: PendingEffect next equals effect
+        Bridge->>AVAU: instantiate with componentDescription
+        AVAU->>AU: init
+        AU->>Bridge: read PendingEffect next
+        Bridge-->>AU: effect instance
+        AU->>AU: configure buses
+        AVAU-->>Voice: AVAudioUnit
+        Voice->>Engine: attach unit
+    end
+
+    Voice->>Engine: connect player to units in series to mainMixer
+    Engine->>AU: allocateRenderResources
+
+

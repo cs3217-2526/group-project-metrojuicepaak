@@ -1,0 +1,153 @@
+//
+//  AudioPlaybackService.swift
+//  MetroJuicePaak
+//
+//  Created by Noah Ang Shi Hern on 19/4/26.
+//
+
+
+classDiagram
+    direction LR
+
+    class AudioPlaybackService {
+        <<protocol>>
+        +load(sample, polyphony)
+        +unload(sample)
+        +play(sample)
+        +playOverlapping(sample)
+        +scheduleAt(sample, time)
+        +stop(sample)
+        +stopAll()
+        +isLoaded(sample)
+        +isPlaying(sample)
+        +currentHostTime TimeInterval
+    }
+
+    class AudioRecordingService {
+        <<protocol>>
+        +isRecording Bool
+        +recordingDuration TimeInterval
+        +startRecording(settings)
+        +stopRecording()
+    }
+
+    class AudioConfigurationService {
+        <<protocol>>
+        +configureAudioSession()
+        +masterVolume Float
+        +setMasterVolume(volume)
+        +setDuckingEnabled(enabled)
+    }
+
+    class LiveEffectChainService {
+        <<protocol>>
+        +rebuildEffectChain(sample)
+        +updateEffectParameter(sample, instanceId, paramId, value)
+    }
+
+    class AudioServiceProtocol {
+        <<protocol>>
+        composition of playback recording and configuration
+    }
+
+    class AudioService {
+        <<class>>
+        -audioSession AVAudioSession
+        -audioApplication AVAudioApplication
+        -audioEngine AudioEngine
+        -activeRecorder AVAudioRecorder
+        -masterVolumeStorage Float
+        -logger Logger
+        +init(registry)
+        +configureAudioApplication()
+        -handleInterruption(notification)
+    }
+
+    class AudioEngine {
+        <<class>>
+        -avEngine AVAudioEngine
+        -voicePools VoicePoolMap
+        -registry EffectRegistry
+        -logger Logger
+        +init(registry)
+        +load(sample, polyphony)
+        +unload(sample)
+        +play(sample)
+        +playOverlapping(sample)
+        +stop(sample)
+        +stopAll()
+        +isLoaded(sample)
+        +isPlaying(sample)
+        +rebuildEffectChain(sample)
+        +updateEffectParameter(sample, instanceId, paramId, value)
+        -poolKey(sample)
+        -applyMixerProperties(sample, voice)
+    }
+
+    class VoicePool {
+        <<class>>
+        +voices SampleVoiceArray
+        +nextVoiceIndex Int
+        +nextVoice()
+    }
+
+    class SampleVoice {
+        <<class>>
+        -engine AVAudioEngine
+        -registry EffectRegistry
+        -bridge DSPEffectAUBridge
+        +playerNode AVAudioPlayerNode
+        -audioFile AVAudioFile
+        -liveEffects DSPEffectArray
+        -effectUnits AVAudioUnitArray
+        -effectsByInstanceId LookupMap
+        -connectionFormat AVAudioFormat
+        +loadFile(url)
+        +rebuildChain(descriptor)
+        +start(startRatio, endRatio)
+        +stop()
+        +setParameter(instanceId, paramId, value)
+        +detach()
+        -disconnectAndDetachCurrentChain()
+    }
+
+    class AVAudioEngine {
+        <<framework>>
+    }
+
+    class AVAudioPlayerNode {
+        <<framework>>
+    }
+
+    class AVAudioUnit {
+        <<framework>>
+    }
+
+    class EffectRegistry {
+        <<class>>
+        see effects diagram
+    }
+
+    class DSPEffectAUBridge {
+        <<enum>>
+        see effects diagram
+    }
+
+    AudioServiceProtocol --|> AudioPlaybackService
+    AudioServiceProtocol --|> AudioRecordingService
+    AudioServiceProtocol --|> AudioConfigurationService
+
+    AudioService ..|> AudioServiceProtocol
+    AudioService ..|> LiveEffectChainService
+
+    AudioService *-- AudioEngine
+    AudioEngine *-- VoicePool
+    VoicePool *-- SampleVoice
+    SampleVoice *-- AVAudioPlayerNode
+    SampleVoice o-- AVAudioUnit
+
+    AudioEngine --> EffectRegistry
+    SampleVoice --> EffectRegistry
+    SampleVoice --> DSPEffectAUBridge
+    AudioEngine --> AVAudioEngine
+```

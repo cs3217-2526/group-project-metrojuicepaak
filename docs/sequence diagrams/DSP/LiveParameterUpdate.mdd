@@ -1,0 +1,47 @@
+sequenceDiagram
+    autonumber
+    participant UI as SwiftUI Slider
+    participant ParamView as EffectParameterView
+    participant EditVM as EffectChainEditorViewModel
+    participant Service as AudioService
+    participant Engine as AudioEngine
+    participant Voice as SampleVoice
+    participant Effect as DSPEffect
+    participant Atom as ManagedAtomic UInt32
+    participant AudThread as Audio Render Thread
+    participant Sample as AudioSample
+
+    Note over UI,AudThread: Continuous drag fires many updates per second
+
+    loop on each drag delta
+        UI->>ParamView: slider value changed
+        ParamView->>ParamView: liveValue equals newVal
+        ParamView->>EditVM: setParameterLive
+        EditVM->>Service: updateEffectParameter
+        Service->>Engine: updateEffectParameter
+
+        loop for each voice in pool
+            Engine->>Voice: setParameter
+            Voice->>Voice: lookup effect by instance id
+            Voice->>Effect: setParameter id value
+            Effect->>Effect: clamp to min max
+            Effect->>Atom: store bit pattern relaxed
+        end
+    end
+
+    Note over AudThread,Effect: Audio thread reads independently of gesture timing
+
+    AudThread->>Effect: process context
+    Effect->>Atom: load relaxed
+    Atom-->>Effect: target value
+    Effect->>Effect: smooth toward target and recompute coefficients
+    Effect->>Effect: filter buffer
+
+    Note over UI,Sample: Gesture end commits exactly once
+
+    UI->>ParamView: onEditingChanged false
+    ParamView->>EditVM: commitParameter finalValue
+    EditVM->>Sample: updateParameter
+    Sample->>Sample: effectDescriptorChain write parameter value
+    ParamView->>ParamView: liveValue equals nil
+    Note right of Sample: Committed value is captured by undo and persistence
