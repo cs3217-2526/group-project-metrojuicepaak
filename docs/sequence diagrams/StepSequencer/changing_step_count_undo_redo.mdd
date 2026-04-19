@@ -33,7 +33,7 @@ sequenceDiagram
     deactivate VM
 
     %% UNDO ACTION
-    rect rgb(30, 40, 50)
+    rect rgb(235, 245, 255)
         note right of User: UNDO ACTION (Bypasses Algorithm)
         User->>View: Taps Undo Button
         View->>VM: undo()
@@ -54,6 +54,32 @@ sequenceDiagram
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
         URM->>URM: push to redoStack
+        deactivate Cmd
+        deactivate URM
+        deactivate VM
+    end
+
+    %% REDO ACTION
+    rect rgb(240, 250, 240)
+        note right of User: REDO ACTION (Re-applies Algorithm)
+        User->>View: Taps Redo Button
+        View->>VM: redo()
+        activate VM
+        VM->>URM: redo()
+        activate URM
+        
+        URM->>URM: pop from redoStack
+        URM->>Cmd: execute()
+        activate Cmd
+        
+        Cmd->>VM: setStepCount(newStepCount)
+        
+        VM->>VM: Run stretch/compress algorithm on tracks
+        VM->>VM: Update stepCount & bound check currentStep
+        VM->>VM: publishSnapshot()
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+        
+        URM->>URM: push to undoStack
         deactivate Cmd
         deactivate URM
         deactivate VM

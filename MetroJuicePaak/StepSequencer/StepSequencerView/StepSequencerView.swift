@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct StepSequencerView: View {
-    var viewModel: StepSequencerViewModel
+    @Bindable var viewModel: StepSequencerViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -18,6 +18,20 @@ struct StepSequencerView: View {
         }
         .padding(.top)
         .background(Color.black.edgesIgnoringSafeArea(.all))
+        alert(
+            "Tempo Limit Reached",
+            isPresented: Binding(
+                get: { viewModel.activeWarning != nil },
+                set: { isPresenting in
+                    if !isPresenting { viewModel.activeWarning = nil }
+                }
+            ),
+            presenting: viewModel.activeWarning
+        ) { warning in
+            Button("Got it", role: .cancel) { }
+        } message: { warning in
+            Text(warning.localizedDescription)
+        }
     }
     
     // MARK: - UI Components

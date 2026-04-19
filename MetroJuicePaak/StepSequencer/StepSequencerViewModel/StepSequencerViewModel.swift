@@ -24,6 +24,8 @@ class StepSequencerViewModel {
     private var playbackTimer: Timer?
     private var playbackStartTime: Date?
     
+    var activeWarning: TempoLimitWarning? = nil
+    
     // MARK: - Initialization
     init(repository: ReadableAudioSampleRepository, musicEngine: MusicEngine) {
         self.repository = repository
@@ -113,17 +115,19 @@ class StepSequencerViewModel {
     // MARK: - Tempo / Transport Controls
     
     func increaseBPM() {
-        let currentBPM = sequencerModel.bpm
-        if currentBPM < 300 {
-            sequencerModel.bpm = currentBPM + 1
+        if sequencerModel.bpm >= 300 {
+            activeWarning = .maximumReached
+        } else {
+            sequencerModel.bpm += 1
             publishSnapshot()
         }
     }
     
     func decreaseBPM() {
-        let currentBPM = sequencerModel.bpm
-        if currentBPM > 40 {
-            sequencerModel.bpm = currentBPM - 1
+        if sequencerModel.bpm <= 40 {
+            activeWarning = .minimumReached
+        } else {
+            sequencerModel.bpm -= 1
             publishSnapshot()
         }
     }
@@ -261,4 +265,21 @@ class StepSequencerViewModel {
     // MARK: - Undo/Redo Pass-Through
     func undo() { undoRedoManager.undo() }
     func redo() { undoRedoManager.redo() }
+}
+
+// MARK: - UI Error States
+extension StepSequencerViewModel {
+    enum TempoLimitWarning: LocalizedError, Identifiable {
+        case maximumReached
+        case minimumReached
+        
+        var id: Self { self }
+        
+        var errorDescription: String? {
+            switch self {
+            case .maximumReached: return "The maximum tempo is 300 BPM."
+            case .minimumReached: return "The minimum tempo is 40 BPM."
+            }
+        }
+    }
 }
