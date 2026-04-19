@@ -8,7 +8,7 @@ sequenceDiagram
     participant Engine as MusicEngine
 
     User->>View: Taps StepButton
-    View->>VM: toggleStep(trackId, stepIndex)
+    View->>VM: executeToggleStep(trackId, stepIndex)
     activate VM
     
     %% Command Creation
@@ -28,7 +28,7 @@ sequenceDiagram
     
     %% The Bridge
     VM->>Engine: apply(snapshot: SequencerSnapshot)
-    note right of Engine: Engine performs atomic swap of latestSnapshot (Lock-Free)
+    note right of Engine: Synchronous write protected by OSAllocatedUnfairLock
     
     deactivate Cmd
     deactivate URM

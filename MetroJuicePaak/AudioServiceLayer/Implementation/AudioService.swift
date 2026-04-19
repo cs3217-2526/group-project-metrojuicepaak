@@ -18,13 +18,16 @@ class AudioService: AudioServiceProtocol {
 
     private let audioSession: AVAudioSession
     internal let audioApplication = AVAudioApplication.shared
-    internal let audioEngine = AudioEngine()
+    internal let audioEngine: AudioEngine
     internal var activeRecorder: AVAudioRecorder?
     private var _masterVolume: Float = 1.0
+    private let registry: EffectRegistry
     private let logger = Logger(subsystem: "MetroJuicePaak", category: "AudioService")
 
-    required init() async throws {
+    init(registry: EffectRegistry) async throws {
+        self.registry = registry
         self.audioSession = AVAudioSession.sharedInstance()
+        self.audioEngine = AudioEngine(registry: registry)
         try await configureAudioApplication()
         do {
             try configureAudioSession()
@@ -77,6 +80,10 @@ class AudioService: AudioServiceProtocol {
     func playOverlapping(_ sample: PlayableAudioSample) async {
         audioEngine.playOverlapping(sample)
     }
+    
+    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval) {
+        audioEngine.scheduleAt(sample: sample, time: time)
+    }
 
     func stop(_ sample: PlayableAudioSample) async {
         audioEngine.stop(sample)
@@ -92,6 +99,12 @@ class AudioService: AudioServiceProtocol {
 
     func isPlaying(_ sample: PlayableAudioSample) -> Bool {
         audioEngine.isPlaying(sample)
+    }
+    
+    // MARK: - AudioPlaybackService
+    
+    var currentHostTime: TimeInterval {
+        AVAudioTime.seconds(forHostTime: mach_absolute_time())
     }
 
     // MARK: - AudioRecordingService
@@ -127,6 +140,26 @@ class AudioService: AudioServiceProtocol {
         activeRecorder = nil
         logger.info("Recording stopped — duration: \(duration)s, file: \(url.lastPathComponent)")
         return RecordingResult(url: url, duration: duration)
+    }
+    
+    // MARK: - LiveEffectChainService
+    
+    func rebuildEffectChain(for sample: EffectableAudioSample) async throws {
+        try await audioEngine.rebuildEffectChain(for: sample)
+    }
+
+    func updateEffectParameter(
+        for sample: EffectableAudioSample,
+        effectInstanceId: UUID,
+        parameterId: String,
+        value: Float
+    ) {
+        audioEngine.updateEffectParameter(
+            for: sample,
+            effectInstanceId: effectInstanceId,
+            parameterId: parameterId,
+            value: value
+        )
     }
 
     // MARK: - Private

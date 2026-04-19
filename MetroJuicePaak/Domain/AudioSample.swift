@@ -8,20 +8,6 @@
 import Foundation
 
 
-// MARK: - Supporting Types
-
-/// A serializable description of a DSP effect to be applied to an audio sample.
-///
-/// `EffectDescriptor` lives in the domain layer and is intentionally decoupled
-/// from any specific DSP framework (AVFoundation, AudioUnit, etc.). The audio
-/// engine is responsible for translating descriptors into concrete effect nodes
-/// at playback time.
-struct EffectDescriptor {
-    //toBeImplementedLater
-    var yourMother: Int
-}
-
-
 // MARK: - Segregated Protocols
 
 /// A view of an audio sample exposing its human-readable display name.
@@ -64,7 +50,7 @@ protocol PlayableAudioSample: AnyObject {
 ///
 /// Used by mixer UIs that need to adjust volume and pan without exposing
 /// trim, effect, or playback concerns.
-protocol MixableAudioSample {
+protocol MixableAudioSample: AnyObject {
     var url: URL { get }
     var volume: Double { get set }
     var pan: Double { get set }
@@ -157,6 +143,33 @@ enum DSPEffectsError: Error, LocalizedError {
     }
 }
 
+/// A serializable description of a DSP effect to be applied to an audio sample.
+///
+/// `EffectInstanceDescriptor` lives in the domain layer and is intentionally decoupled
+/// from any specific DSP framework (AVFoundation, AudioUnit, etc.). The audio
+/// engine is responsible for translating descriptors into concrete effect nodes
+/// at playback time.
+struct EffectInstanceDescriptor: Identifiable {
+    let id: UUID                        // per-instance identity within the chain
+    let effectIdentifier: String        // which registry entry
+    var parameterValues: [String: Float]
+    var isBypassed: Bool
+
+    init(effectIdentifier: String,
+         parameterValues: [String: Float] = [:],
+         isBypassed: Bool = false) {
+        self.id = UUID()
+        self.effectIdentifier = effectIdentifier
+        self.parameterValues = parameterValues
+        self.isBypassed = isBypassed
+    }
+}
+
+struct EffectChainDescriptor {
+    // At most 4 — enforce at mutation time in the view model.
+    var effects: [EffectInstanceDescriptor]
+}
+
 /// A mutable view of an audio sample's DSP effect chain.
 ///
 /// The effect chain is hard-capped at 4 entries to bound real-time CPU cost
@@ -164,22 +177,46 @@ enum DSPEffectsError: Error, LocalizedError {
 /// enforced at the domain layer (here) rather than at the engine, so that
 /// invalid states cannot reach the audio thread in the first place.
 protocol EffectableAudioSample: AnyObject {
-    var effectDescriptorChain: [EffectDescriptor] { get set }
-    
-    /// Appends an effect descriptor to the chain.
-    ///
-    /// - Parameter descriptor: The effect to add.
-    /// - Throws: ``DSPEffectsError/tooManyEffects`` if the chain already
-    ///           contains 4 effects.
-    func addEffect(_ descriptor: EffectDescriptor) throws(DSPEffectsError)
+    var effectDescriptorChain: [EffectInstanceDescriptor] { get set }
+
+    func addEffect(_ descriptor: EffectInstanceDescriptor) throws(DSPEffectsError)
+    func removeEffect(instanceId: UUID)
+    func moveEffect(from: Int, to: Int)
+    func updateParameter(instanceId: UUID, parameterId: String, value: Float)
+    func toggleBypass(instanceId: UUID)
 }
 
 extension EffectableAudioSample {
-    func addEffect(_ descriptor: EffectDescriptor) throws(DSPEffectsError) {
-        guard effectDescriptorChain.count < 4 else {
+    func addEffect(_ descriptor: EffectInstanceDescriptor) throws(DSPEffectsError) {
+        guard effectDescriptorChain.count < EffectLimits.maxEffectsPerChain else {
             throw DSPEffectsError.tooManyEffects
         }
         effectDescriptorChain.append(descriptor)
+    }
+
+    func removeEffect(instanceId: UUID) {
+        effectDescriptorChain.removeAll { $0.id == instanceId }
+    }
+
+    func moveEffect(from: Int, to: Int) {
+        guard effectDescriptorChain.indices.contains(from),
+              effectDescriptorChain.indices.contains(to) else { return }
+        let effect = effectDescriptorChain.remove(at: from)
+        effectDescriptorChain.insert(effect, at: to)
+    }
+
+    func updateParameter(instanceId: UUID, parameterId: String, value: Float) {
+        guard let index = effectDescriptorChain.firstIndex(where: { $0.id == instanceId }) else {
+            return
+        }
+        effectDescriptorChain[index].parameterValues[parameterId] = value
+    }
+
+    func toggleBypass(instanceId: UUID) {
+        guard let index = effectDescriptorChain.firstIndex(where: { $0.id == instanceId }) else {
+            return
+        }
+        effectDescriptorChain[index].isBypassed.toggle()
     }
 }
 
@@ -266,7 +303,7 @@ class AudioSample: NamedAudioSample, PlayableAudioSample, EditableAudioSample, E
     /// The ordered chain of DSP effects applied to this sample during playback.
     ///
     /// The chain is capped at 4 effects, enforced by ``EffectableAudioSample/addEffect(_:)``.
-    var effectDescriptorChain: [EffectDescriptor]
+    var effectDescriptorChain: [EffectInstanceDescriptor]
     
     /// Creates a new audio sample.
     ///
@@ -278,7 +315,7 @@ class AudioSample: NamedAudioSample, PlayableAudioSample, EditableAudioSample, E
     ///   - effectDescriptorChain: Initial chain of DSP effects. Defaults to empty.
     ///   - volume: Initial linear gain. Defaults to unity (`1.0`).
     ///   - pan: Initial stereo pan. Defaults to center (`0.5`).
-    init(url: URL, name: String, startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0, effectDescriptorChain: [EffectDescriptor] = [], volume: Double = 1, pan: Double = 0.5) {
+    init(url: URL, name: String, startTimeRatio: Double = 0.0, endTimeRatio: Double = 1.0, effectDescriptorChain: [EffectInstanceDescriptor] = [], volume: Double = 1, pan: Double = 0.5) {
         self.url = url
         self.name = name
         self.volume = volume

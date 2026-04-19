@@ -20,9 +20,9 @@ sequenceDiagram
         activate Cmd
         
         note right of Cmd: Command reverses the creation
-        Cmd->>VM: removeTrack(at: trackId)
+        Cmd->>VM: removeTrack(id: track.id)
         
-        VM->>VM: Remove track from model dictionary
+        VM->>VM: Remove track from model array
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         
@@ -45,9 +45,9 @@ sequenceDiagram
         activate Cmd
         
         note right of Cmd: Restores the cached track to preserve UUID
-        Cmd->>VM: addTrack(trackBackup)
+        Cmd->>VM: insertTrack(track, at: endPosition)
         
-        VM->>VM: Insert track back into dictionary
+        VM->>VM: Insert track back into array
         VM->>VM: publishSnapshot()
         VM->>Engine: apply(snapshot: SequencerSnapshot)
         

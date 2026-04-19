@@ -1,5 +1,5 @@
 //
-//  AudioPlaybackService.swift
+//  PlayBackService.swift
 //  MetroJuicePaak
 //
 //  Created by Noah Ang Shi Hern on 13/4/26.
@@ -29,7 +29,8 @@ protocol AudioPlaybackService {
     /// If the audio sample is already playing,
     /// this stops the currently playing audio sample and
     /// immediately plays it again from the start
-    /// - Parameter sample: The AudioSample to play (must be loaded first)
+    /// - Parameter sample: The AudioSample to play. If the sample
+    ///     is not loaded, this call is a no-op.
     func play(_ sample: PlayableAudioSample) async
     
     /// Plays a loaded audio sample
@@ -42,8 +43,36 @@ protocol AudioPlaybackService {
     /// voice-stealing will occur, which is where the most recent playOverlapping()
     /// call will stop playing the least recent's call immediately in order to
     /// immediately start playing.
-    /// - Parameter sample: The AudioSample to play (must be loaded first)
+    /// - Parameter sample: The AudioSample to play. If the sample
+    ///     is not loaded, this call is a no-op.
     func playOverlapping(_ sample: PlayableAudioSample) async
+    
+    /// Returns the current time in seconds on the host timeline.
+    /// Use this as the reference point for `scheduleAt` times.
+    var currentHostTime: TimeInterval { get }
+    
+    /// Schedules a loaded audio sample for playback
+    /// at the specified absolute time on the host timeline.
+    ///
+    /// Playback overlaps with any currently playing voices
+    /// of the same sample. If the number of concurrent voices
+    /// exceeds the polyphony this sample was loaded with,
+    /// the least recently scheduled voice is stolen.
+    ///
+    /// This method is synchronous and safe to call
+    /// from time-critical contexts.
+    ///
+    /// To use this sample-accurately, you should first
+    /// snapshot the current host time using currentTime.
+    /// Then you compute the time you want to schedule a playback with pure arithmetic.
+    ///
+    /// - Parameters:
+    ///   - sample: The AudioSample to play. If the sample
+    ///     is not loaded, this call is a no-op.
+    ///   - time: Absolute time in seconds on the host timeline,
+    ///     as returned by `AVAudioTime.seconds`.
+    ///     If `time` is in the past, the event is silently dropped.
+    func scheduleAt(_ sample: PlayableAudioSample, time: TimeInterval)
     
     /// Stops playback of a specific sample
     /// - Parameter sample: The AudioSample to stop
@@ -61,13 +90,4 @@ protocol AudioPlaybackService {
     /// - Parameter sample: The AudioSample to check
     /// - Returns: true if playing, false otherwise
     func isPlaying(_ sample: PlayableAudioSample) -> Bool
-}
-
-/// Result of a recording session
-struct RecordingResult {
-    /// Absolute URL to the recorded file (AudioService creates this)
-    let url: URL
-    
-    /// Duration of the recording in seconds
-    let duration: TimeInterval
 }

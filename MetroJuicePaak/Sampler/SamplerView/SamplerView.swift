@@ -105,7 +105,7 @@ struct SamplerView: View {
         
         // 1. Waveform Editor Modal
         .sheet(item: $orchestrator.sampleIDToEdit) { context in
-            WaveformEditorContainer(orchestrator: orchestrator, sampleID: context.id)
+            SamplerEditorContainer(orchestrator: orchestrator, sampleID: context.id)
         }
         
         // 2. Sample Picker Modal
