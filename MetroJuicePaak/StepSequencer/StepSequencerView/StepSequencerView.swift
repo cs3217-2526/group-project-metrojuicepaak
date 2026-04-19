@@ -18,7 +18,7 @@ struct StepSequencerView: View {
         }
         .padding(.top)
         .background(Color.black.edgesIgnoringSafeArea(.all))
-        alert(
+        .alert(
             "Tempo Limit Reached",
             isPresented: Binding(
                 get: { viewModel.activeWarning != nil },
