@@ -36,10 +36,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
     // MARK: - The Full User Journey Integration Test
     
     func testFullUserCompositionWorkflow() {
-        // ---------------------------------------------------------
-        // PHASE 1: The Setup (User creates a 2-track sequence)
-        // ---------------------------------------------------------
-        
         // 1. Add Kick Track
         viewModel.executeAddTrack()
         let kickTrackId = viewModel.sequencerModel.tracks[0].id
@@ -53,10 +49,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         XCTAssertEqual(viewModel.sequencerModel.tracks.count, 2)
         XCTAssertEqual(mockEngine.latestSnapshot?.tracks.count, 2, "Engine must be perfectly synced with the model via snapshots")
         XCTAssertTrue(viewModel.undoRedoManager.canUndo, "Undo stack should be tracking these setup commands")
-        
-        // ---------------------------------------------------------
-        // PHASE 2: The Composition (Plotting a beat)
-        // ---------------------------------------------------------
         
         // 3. User programs a simple 4-on-the-floor kick (Steps 0, 4, 8, 12)
         for i in stride(from: 0, to: 16, by: 4) {
@@ -72,10 +64,6 @@ final class StepSequencerIntegrationTests: XCTestCase {
         XCTAssertEqual(activeKicks, 4)
         XCTAssertEqual(activeSnares, 2)
         
-        // ---------------------------------------------------------
-        // PHASE 3: Global Transport Changes
-        // ---------------------------------------------------------
-        
         // 5. User starts playback and hypes up the tempo
         viewModel.togglePlayback()
         viewModel.sequencerModel.bpm = 120
@@ -85,19 +73,11 @@ final class StepSequencerIntegrationTests: XCTestCase {
         XCTAssertTrue(mockEngine.isRunning)
         XCTAssertEqual(mockEngine.latestSnapshot?.bpm, 122, "Engine snapshot must instantly reflect direct BPM mutations")
         
-        // ---------------------------------------------------------
-        // PHASE 4: The Grid Shift (Stretching the sequence)
-        // ---------------------------------------------------------
-        
         // 6. User expands the 16-step beat into a 32-step grid
         viewModel.executeChangeStepCount(to: 32)
         
         XCTAssertEqual(viewModel.sequencerModel.stepCount, 32)
         XCTAssertEqual(viewModel.sequencerModel.tracks[0].steps.count, 32)
-        
-        // ---------------------------------------------------------
-        // PHASE 5: The "Nevermind" Reversal (Testing deep integration)
-        // ---------------------------------------------------------
         
         // The user decides they hate the 32-step expansion, the snare, and the entire second track.
         // They hit Undo exactly 4 times:
