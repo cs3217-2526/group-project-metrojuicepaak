@@ -7,7 +7,7 @@ sequenceDiagram
     participant Cmd as AddTrackCommand
     participant Engine as MusicEngine
 
-    rect rgb(30, 40, 50)
+    rect rgb(235, 245, 255)
         note right of User: UNDO ACTION (Removes the Track)
         User->>View: Taps Undo Button
         View->>VM: undo()
@@ -32,7 +32,7 @@ sequenceDiagram
         deactivate VM
     end
     
-    rect rgb(40, 50, 40)
+    rect rgb(240, 250, 240)
         note right of User: REDO ACTION (Re-adds the exact Track)
         User->>View: Taps Redo Button
         View->>VM: redo()

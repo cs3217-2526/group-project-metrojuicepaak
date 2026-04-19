@@ -1,0 +1,211 @@
+//
+//  DSPEffect.swift
+//  MetroJuicePaak
+//
+//  Created by Noah Ang Shi Hern on 19/4/26.
+//
+
+
+classDiagram
+    direction LR
+
+    class DSPEffect {
+        <<protocol>>
+        +identifier String
+        +displayName String
+        +category EffectCategory
+        +parameterDescriptors ParameterDescriptorArray
+        +latencySamples Int
+        +init()
+        +prepare(sampleRate, maxFrameCount, channelCount)
+        +reset()
+        +process(context)
+        +setParameter(id, value)
+    }
+
+    class DSPProcessContext {
+        <<struct>>
+        +buffers ChannelPointerArray
+        +frameCount Int
+        +channelCount Int
+    }
+
+    class ParameterDescriptor {
+        <<struct>>
+        +id String
+        +displayName String
+        +minValue Float
+        +maxValue Float
+        +defaultValue Float
+        +unit ParameterUnit
+        +taper ParameterTaper
+        +controlHint ParameterControlHint
+        +valueLabels StringArrayOptional
+    }
+
+    class EffectCategory {
+        <<enum>>
+        filter
+        dynamics
+        timeBased
+        modulation
+        distortion
+        utility
+    }
+
+    class ParameterUnit {
+        <<enum>>
+        hertz
+        decibels
+        seconds
+        milliseconds
+        percent
+        ratio
+        semitones
+        unitless
+    }
+
+    class ParameterTaper {
+        <<enum>>
+        linear
+        logarithmic
+        exponential
+    }
+
+    class ParameterControlHint {
+        <<enum>>
+        knob
+        fader
+        toggle
+        stepped
+        indexed
+    }
+
+    class EffectLimits {
+        <<enum>>
+        +maxEffectsPerChain 4
+        +maxParametersPerEffect 6
+    }
+
+    class GainEffect {
+        <<class>>
+        -targetLinearGainBits ManagedAtomic
+        -currentLinearGain Float
+        -smoothingCoefficient Float
+    }
+
+    class LowpassEffect {
+        <<class>>
+        -targetCutoffBits ManagedAtomic
+        -targetResonanceBits ManagedAtomic
+        -z1 FloatArray
+        -z2 FloatArray
+        -coefficients b0 b1 b2 a1 a2
+    }
+
+    class ReverbEffect {
+        <<class>>
+        -targetSizeBits ManagedAtomic
+        -targetDampingBits ManagedAtomic
+        -targetMixBits ManagedAtomic
+        -combs CombFilterArray
+        -allpasses AllpassFilterArray
+    }
+
+    class EffectRegistry {
+        <<class>>
+        -factories FactoryMap
+        -metadata MetadataMap
+        +register(type)
+        +make(identifier)
+        +allMetadata()
+    }
+
+    class EffectMetadata {
+        <<struct>>
+        +identifier String
+        +displayName String
+        +category EffectCategory
+        +parameterDescriptors ParameterDescriptorArray
+    }
+
+    class EffectInstanceDescriptor {
+        <<struct>>
+        +id UUID
+        +effectIdentifier String
+        +parameterValues ParameterValueMap
+        +isBypassed Bool
+    }
+
+    class EffectChainDescriptor {
+        <<struct>>
+        +effects EffectInstanceDescriptorArray
+    }
+
+    class DSPEffectAudioUnit {
+        <<class>>
+        -effect DSPEffect
+        -pcmBuffer AVAudioPCMBuffer
+        -inputBus AUAudioUnitBus
+        -outputBus AUAudioUnitBus
+        +internalRenderBlock
+        +allocateRenderResources()
+        +latency TimeInterval
+    }
+
+    class DSPEffectAUBridge {
+        <<enum>>
+        +componentDescription AudioComponentDescription
+        +registerOnce()
+        +makeAVAudioUnit(effect)
+    }
+
+    class PendingEffect {
+        <<enum>>
+        +next DSPEffectOptional
+    }
+
+    class SampleVoice {
+        <<class>>
+        -engine AVAudioEngine
+        -registry EffectRegistry
+        -playerNode AVAudioPlayerNode
+        -liveEffects DSPEffectArray
+        -effectUnits AVAudioUnitArray
+        -effectsByInstanceId LookupMap
+        +loadFile(url)
+        +rebuildChain(descriptor)
+        +setParameter(instanceId, parameterId, value)
+        +start(startRatio, endRatio)
+        +detach()
+    }
+
+    GainEffect ..|> DSPEffect
+    LowpassEffect ..|> DSPEffect
+    ReverbEffect ..|> DSPEffect
+
+    DSPEffect ..> DSPProcessContext : consumes
+    DSPEffect ..> ParameterDescriptor : declares
+    ParameterDescriptor --> ParameterUnit
+    ParameterDescriptor --> ParameterTaper
+    ParameterDescriptor --> ParameterControlHint
+    DSPEffect --> EffectCategory
+
+    EffectRegistry o-- EffectMetadata : caches
+    EffectRegistry ..> DSPEffect : instantiates
+    EffectMetadata *-- ParameterDescriptor
+    EffectRegistry ..> EffectLimits : enforces
+
+    EffectChainDescriptor *-- EffectInstanceDescriptor
+    EffectInstanceDescriptor ..> EffectRegistry : refs by identifier
+
+    DSPEffectAudioUnit o-- DSPEffect : hosts one
+    DSPEffectAUBridge ..> DSPEffectAudioUnit : registers
+    DSPEffectAUBridge ..> PendingEffect : uses
+
+    SampleVoice o-- DSPEffect : liveEffects
+    SampleVoice o-- DSPEffectAudioUnit : effectUnits
+    SampleVoice --> EffectRegistry : resolves
+    SampleVoice --> DSPEffectAUBridge : wraps
+    SampleVoice ..> EffectChainDescriptor : consumes
+```

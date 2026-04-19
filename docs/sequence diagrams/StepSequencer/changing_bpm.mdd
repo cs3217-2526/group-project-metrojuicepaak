@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as StepSequencerView
+    participant VM as StepSequencerViewModel
+    participant Engine as MusicEngine
+
+    User->>View: Taps +/- on BPM Control
+    
+    alt Increase BPM
+        View->>VM: increaseBPM()
+    else Decrease BPM
+        View->>VM: decreaseBPM()
+    end
+    
+    activate VM
+    
+    note right of VM: Direct mutation bypasses UndoRedoManager
+    
+    alt Tempo Limit Reached (e.g., > 300 or < 40)
+        VM->>VM: Set activeWarning = TempoLimitWarning
+        VM-->>View: State change triggers SwiftUI Alert
+        note right of User: Engine update is safely aborted
+    else Valid Tempo
+        VM->>VM: Update sequencerModel.bpm
+        VM->>VM: publishSnapshot()
+        note right of VM: Creates immutable SequencerSnapshot with new BPM
+        VM->>Engine: apply(snapshot: SequencerSnapshot)
+    end
+    
+    deactivate VM

@@ -1,0 +1,63 @@
+sequenceDiagram
+    autonumber
+    participant View as SamplerView
+    participant VM as SamplerViewModel
+    participant Repo as AudioSampleRepository
+    participant Service as AudioService
+    participant Engine as AudioEngine
+    participant Pool as VoicePool
+    participant Voice as SampleVoice
+    participant Player as AVAudioPlayerNode
+    participant AVEngine as AVAudioEngine
+    participant AudThread as AudioRenderThread
+    participant Effects as EffectChain
+
+    View->>VM: handlePadTap padIndex
+    Note right of VM: isEditMode false means playback branch
+    VM->>VM: playPad async task
+    VM->>Repo: getPlayableSample
+    Repo-->>VM: PlayableAudioSample
+    VM->>Service: playOverlapping sample
+    Service->>Engine: playOverlapping sample
+
+    Engine->>Engine: derive poolKey
+    Engine->>Pool: lookup voicePools by key
+
+    alt pool missing
+        Pool-->>Engine: nil
+        Engine-->>Service: return noop
+    else pool present
+        Pool-->>Engine: VoicePool
+        Engine->>Pool: nextVoice
+        Pool->>Pool: advance nextVoiceIndex modulo count
+        Pool-->>Engine: selected SampleVoice
+
+        Engine->>Voice: applyMixerProperties
+        Voice->>Player: set volume and pan
+
+        Engine->>Voice: start with trim ratios
+
+        Note over Voice,Player: Voice stealing stops prior playback on reused slot
+
+        Voice->>Player: stop
+        Voice->>Voice: compute startFrame and frameCount
+
+        alt frameCount greater than zero
+            Voice->>Player: scheduleSegment
+        else zero length region
+            Note right of Voice: Safety guard skips scheduling
+        end
+
+        Voice->>AVEngine: start engine if not running
+        Voice->>Player: play
+
+        Note over AudThread,Effects: Audio thread pulls through effect chain
+
+        loop each render cycle
+            AudThread->>Player: pull buffer
+            Player-->>AudThread: PCM frames
+            AudThread->>Effects: process through each AU
+            Effects-->>AudThread: transformed buffer
+            AudThread->>AVEngine: write to mainMixer output
+        end
+    end
