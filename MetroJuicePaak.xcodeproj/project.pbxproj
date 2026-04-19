@@ -45,6 +45,7 @@
 		E6204A392F950E2E009C254E /* Exceptions for "docs" folder in "MetroJuicePaak" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"class diagrams/ClassDiagramSampler&SamplerEditor.svg",
 				"sequence diagrams/Sampler/AudioRecording&IngestionPipeline.svg",
 				"sequence diagrams/Sampler/FactoryDelegationPattern.svg",
 				"sequence diagrams/Sampler/SamplerEditor&PreviewLoop.svg",
