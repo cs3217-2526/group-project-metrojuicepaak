@@ -47,6 +47,20 @@
 			);
 			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
 		};
+		E660A6172F941D8200ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
+		};
+		E660A6192F941D8400ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -60,6 +74,10 @@
 		};
 		57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E660A6192F941D8400ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
+				E660A6172F941D8200ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
+			);
 			path = MetroJuicePaakTests;
 			sourceTree = "<group>";
 		};
