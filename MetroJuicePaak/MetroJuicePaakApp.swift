@@ -2,8 +2,6 @@
 //  MetroJuicePaakApp.swift
 //  MetroJuicePaak
 //
-//  Created by Noah Ang Shi Hern on 17/3/26.
-//
 
 import SwiftUI
 import AVFoundation
@@ -37,7 +35,73 @@ struct MetroJuicePaakApp: App {
     
     @MainActor
     private func initializeAudio() async {
-        print("🎙️ 1. Starting audio initialization...")
+        // Detect if we are running Unit Tests or UI Tests
+        let isXCTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let isUITestingFlag = ProcessInfo.processInfo.arguments.contains("--uitesting")
+        
+        if isXCTestEnvironment || isUITestingFlag {
+            #if DEBUG
+            await initializeMockAudio()
+            return
+            #endif
+        }
+        
+        // If not testing, boot the real audio engine
+        await initializeRealAudio()
+    }
+    
+    #if DEBUG
+    @MainActor
+    private func initializeMockAudio() async {
+        print("🧪 Testing Mode Detected: Booting Mock Services...")
+        do {
+            let repository = AudioSampleRepository()
+            let effectRegistry = EffectRegistry() // Safe to use the real registry, it's just a data structure
+            
+            // Inject the Mocks we built in MockServices.swift
+            let mockAudioService = try await MockAudioService()
+            let mockWaveformGenerator = MockWaveformGenerator()
+            
+            let editorFactory = EditorViewModelFactory(
+                repository: repository,
+                audioService: mockAudioService,
+                waveformGenerator: mockWaveformGenerator,
+                effectRegistry: effectRegistry
+            )
+            
+            // We use the real MusicEngine but feed it the MockAudioService
+            // so it never touches the real hardware AV layer
+            let avEngine = AVAudioEngine()
+            let timeProvider = AudioTimeProvider(audioEngine: avEngine)
+            let musicEngine = MusicEngineImplementation(
+                audioPlaybackService: mockAudioService,
+                timeProvider: timeProvider
+            )
+            
+            self.samplerOrchestrator = SamplerViewModel(
+                repository: repository,
+                audioService: mockAudioService,
+                editorFactory: editorFactory,
+                padViewModelGenerator: mockWaveformGenerator
+            )
+            
+            self.sequencerViewModel = StepSequencerViewModel(
+                repository: repository,
+                musicEngine: musicEngine
+            )
+            
+            print("🧪 Testing Mode: Mocks successfully injected. App ready for tests!")
+            
+        } catch {
+            self.initializationError = error
+            print("🛑 Mock Initialization failed: \(error.localizedDescription)")
+        }
+    }
+    #endif
+    
+    @MainActor
+    private func initializeRealAudio() async {
+        print("🎙️ 1. Starting real audio initialization...")
         do {
             let repository = AudioSampleRepository()
             print("🎙️ 2. Repository created.")
@@ -55,8 +119,6 @@ struct MetroJuicePaakApp: App {
             let waveformGenerator = WaveformCache()
             print("🎙️ 6. Waveform generator created.")
 
-            // Build the factory that knows how to construct editor view models.
-            // Everything after this doesn't need to see effectRegistry anymore.
             let editorFactory = EditorViewModelFactory(
                 repository: repository,
                 audioService: audioService,
@@ -97,15 +159,7 @@ struct MetroJuicePaakApp: App {
     }
 }
 
-   
-
 // MARK: - Effect Bootstrap
-
-/// Centralized effect registration. Every built-in DSPEffect type the app
-/// ships with is registered here. Adding a new effect means adding a
-/// single line to this function, after including the file in ConcreteDSPEffects
-/// the rest of the app discovers it via
-/// the registry at runtime.
 enum AppBootstrap {
     static func registerBuiltInEffects(into registry: EffectRegistry) {
         registry.register(GainEffect.self)
@@ -114,7 +168,7 @@ enum AppBootstrap {
     }
 }
 
-// Simple error view to display initialization errors (Unchanged)
+// MARK: - Error View
 struct ErrorView: View {
     let error: Error
 

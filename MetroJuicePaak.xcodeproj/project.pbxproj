@@ -10,6 +10,7 @@
 		57B260262F6927DC00D45B43 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 57B260252F6927DC00D45B43 /* README.md */; };
 		57B260282F6928AA00D45B43 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 57B260272F6928A100D45B43 /* .gitignore */; };
 		57B260362F6E840E00D45B43 /* swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 57B260352F6E840E00D45B43 /* swiftlint.yml */; };
+		E660A9822F94B1A800ACA2CD /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = E660A9812F94B1A800ACA2CD /* Atomics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,19 +48,19 @@
 			);
 			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
 		};
-		E660A6172F941D8200ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				MockServices.swift,
-			);
-			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
-		};
-		E660A6192F941D8400ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
+		E660A9842F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				MockServices.swift,
 			);
 			target = 57B25FDC2F69263A00D45B43 /* MetroJuicePaak */;
+		};
+		E660A9852F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockServices.swift,
+			);
+			target = 57B25FE92F69263B00D45B43 /* MetroJuicePaakTests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -75,8 +76,8 @@
 		57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				E660A6192F941D8400ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
-				E660A6172F941D8200ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
+				E660A9842F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaak" target */,
+				E660A9852F94C36900ACA2CD /* Exceptions for "MetroJuicePaakTests" folder in "MetroJuicePaakTests" target */,
 			);
 			path = MetroJuicePaakTests;
 			sourceTree = "<group>";
@@ -93,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E660A9822F94B1A800ACA2CD /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -123,6 +125,7 @@
 				57B25FDF2F69263A00D45B43 /* MetroJuicePaak */,
 				57B25FED2F69263B00D45B43 /* MetroJuicePaakTests */,
 				57B25FF72F69263B00D45B43 /* MetroJuicePaakUITests */,
+				E660A9802F94B1A800ACA2CD /* Frameworks */,
 				57B25FDE2F69263A00D45B43 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -135,6 +138,13 @@
 				57B25FF42F69263B00D45B43 /* MetroJuicePaakUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E660A9802F94B1A800ACA2CD /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -158,6 +168,7 @@
 			);
 			name = MetroJuicePaak;
 			packageProductDependencies = (
+				E660A9812F94B1A800ACA2CD /* Atomics */,
 			);
 			productName = MetroJuicePaak;
 			productReference = 57B25FDD2F69263A00D45B43 /* MetroJuicePaak.app */;
@@ -241,6 +252,9 @@
 			);
 			mainGroup = 57B25FD42F69263A00D45B43;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E660A97F2F94B1A300ACA2CD /* XCRemoteSwiftPackageReference "swift-atomics" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 57B25FDE2F69263A00D45B43 /* Products */;
 			projectDirPath = "";
@@ -651,6 +665,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E660A97F2F94B1A300ACA2CD /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-atomics.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E660A9812F94B1A800ACA2CD /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E660A97F2F94B1A300ACA2CD /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 57B25FD52F69263A00D45B43 /* Project object */;
 }
