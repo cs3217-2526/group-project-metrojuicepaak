@@ -79,7 +79,7 @@ final class SampleVoice {
         let format = file.processingFormat
         let frameCount = AVAudioFrameCount(file.length)
         
-        // 🟢 Read the disk ONCE and store the entire file in RAM
+        // Read the disk ONCE and store the entire file in RAM
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
             throw SampleVoiceError.notLoaded
         }

@@ -5,13 +5,6 @@
 //  Created by Edwin Wong on 27/03/2026.
 //
 
-import Foundation
-
-protocol Command {
-    func execute()
-    func undo()
-}
-
 class UndoRedoManager {
     private var undoStack: [Command] = []
     private var redoStack: [Command] = []
